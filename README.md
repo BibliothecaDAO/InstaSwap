@@ -1,9 +1,17 @@
-# Minimal Cairo 1.0 Template  ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-green.svg) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/auditless/cairo-template/blob/main/LICENSE) <a href="https://github.com/auditless/cairo-template/actions/workflows/test.yaml"> <img src="https://github.com/auditless/cairo-template/actions/workflows/test.yaml/badge.svg?event=push" alt="CI Badge"/> </a>
+# InstaSwap
 
-[Built with **`auditless/cairo-template`**](https://github.com/auditless/cairo-template)
+What is InstaSwap?
 
-A minimal template for building smart contracts with Cairo 1.0
-using the [Quaireaux](https://github.com/keep-starknet-strange/quaireaux) project defaults.
+InstaSwap is a decentralized token swap protocol for ERC-1155 tokens on Starknet. In other words, InstaSwap is Uniswap for ERC-1155 tokens.Users can trade up to `n` amount of ERC1155 tokens in one transaction with a ERC20 token!
+
+*Greatly inspired by Uniswap and Niftyswap,thanks for the work done by the Uniswap team and Niftyswap team*
+
+
+# Contribute
+
+Contribution are welcome! Please check the good first issues for a list of issues that are good for new contributors.
+
+# Development
 
 ## How it works
 
@@ -74,22 +82,6 @@ $ which cairo-language-server | pbcopy
 
 Update the `languageServerPath` of the Cairo 1.0 extension by pasting the path.
 
-## How to use this template
-
-First you will need to clone the repository or click the `Use this template` button
-at the top of the page to create a new repository based on the template.
-
-Next, you will want to update the configuration files with the name of your project:
-
-```
-├── .cairo_project.toml
-└── .Scarb.toml
-```
-
-## Working with your project
-
-The Cairo template currently supports building and testing contracts.
-
 ### Build
 
 Build the contracts.
@@ -121,20 +113,3 @@ View the compiled Sierra output of your Cairo code:
 ```bash
 $ make sierra
 ```
-
-## Thanks to
-
-- The [Quaireaux](https://github.com/keep-starknet-strange/quaireaux) team for coming up with
-this configuration and especially [Abdel](https://github.com/abdelhamidbakhta) for helping me with Cairo 1.0 installation
-- [Paul Berg](https://github.com/PaulRBerg) and the [foundry-template](https://github.com/paulrberg/foundry-template) project which served as inspiration
-- Last but not least, the StarkWare team for building the first smart contract language that is a joy to use
-
-## Other templates
-
-- [ArgentX template](https://github.com/argentlabs/starknet-build/tree/main/cairo1.0) is built as a fork of the compiler
-- [Eni's cairo1-template](https://github.com/msaug/cairo1-template) uses git submodules for installation
-- [Shramee's Starklings](https://github.com/shramee/starklings-cairo1) use the cairo1 crates as libraries and builds its own framework
-
-## License
-
-[MIT](https://github.com/auditless/cairo-template/blob/main/LICENSE) © [Auditless Limited](https://www.auditless.com)
