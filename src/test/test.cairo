@@ -1,4 +1,3 @@
-
 use instaswap::instaswap_pair::InstaSwapPair;
 use starknet::contract_address_const;
 use starknet::ContractAddress;
@@ -25,7 +24,6 @@ fn MAX_U256() -> u256 {
 //
 
 fn setup() -> (ContractAddress, u256) {
-
     let initial_supply: u256 = u256_from_felt252(2000);
     let account: ContractAddress = contract_address_const::<1>();
     // Set account as default caller
@@ -52,11 +50,8 @@ fn set_caller_as_zero() {
 // Tests
 //
 
-
 #[test]
 #[available_gas(2000000)]
 fn test_Initialize() {
     setup();
-
-
 }

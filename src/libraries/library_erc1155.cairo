@@ -148,62 +148,49 @@ mod ERC1155 {
         }
     }
 
-    fn _mint(
-        to: ContractAddress,
-        id: u256,
-        value: u256,
-        data: Array<felt252>,
-    ) {
+    fn _mint(to: ContractAddress, id: u256, value: u256, data: Array<felt252>, ) {}
 
-    }
+    fn _burn(from: ContractAddress, id: u256, value: u256, ) {}
 
-    fn _burn(
-        from: ContractAddress,
-        id: u256,
-        value: u256,
-    ) {
-        
-    }
 
-    
     fn supports_interface(interface_id: u32) -> bool {
         // erc165::ERC165Contract::supports_interface(interface_id)
         true
     }
 
-    
+
     fn balance_of(account: ContractAddress, id: u256) -> u256 {
         ERC1155::balance_of(account, id)
     }
 
-    
+
     fn balance_of_batch(accounts: Array<ContractAddress>, ids: Array<u256>) -> Array<u256> {
         ERC1155::balance_of_batch(accounts, ids)
     }
 
-    
+
     fn is_approved_for_all(owner: ContractAddress, operator: ContractAddress) -> bool {
         ERC1155::is_approved_for_all(owner, operator)
     }
 
-    
+
     fn uri(id: u256) -> felt252 {
         ERC1155::uri(id)
     }
 
-    
+
     fn set_approval_for_all(operator: ContractAddress, approved: bool) {
         ERC1155::set_approval_for_all(operator, approved)
     }
 
-    
+
     fn safe_transfer_from(
         from: ContractAddress, to: ContractAddress, id: u256, amount: u256, data: Array<felt252>
     ) {
         ERC1155::safe_transfer_from(from, to, id, amount, data)
     }
 
-    
+
     fn safe_batch_transfer_from(
         from: ContractAddress,
         to: ContractAddress,
@@ -214,21 +201,21 @@ mod ERC1155 {
         ERC1155::safe_batch_transfer_from(from, to, ids, amounts, data)
     }
 
-    
+
     fn initializer(uri: felt252) {
         _set_uri(uri);
-        // erc165::ERC165Contract::register_interface(erc1155::IERC1155_ID);
-        // erc165::ERC165Contract::register_interface(erc1155::IERC1155_METADATA_ID);
+    // erc165::ERC165Contract::register_interface(erc1155::IERC1155_ID);
+    // erc165::ERC165Contract::register_interface(erc1155::IERC1155_METADATA_ID);
     }
 
-    
+
     fn _set_approval_for_all(owner: ContractAddress, operator: ContractAddress, approved: bool) {
         assert(owner != operator, 'ERC1155: self approval');
         _operator_approvals::write((owner, operator), approved);
         ApprovalForAll(owner, operator, approved);
     }
 
-    
+
     fn _safe_transfer_from(
         from: ContractAddress, to: ContractAddress, id: u256, amount: u256, data: Array<felt252>
     ) {
@@ -242,7 +229,7 @@ mod ERC1155 {
         _do_safe_transfer_acceptance_check(operator, from, to, id, amount, data);
     }
 
-    
+
     fn _safe_batch_transfer_from(
         from: ContractAddress,
         to: ContractAddress,
@@ -251,19 +238,19 @@ mod ERC1155 {
         data: Array<felt252>
     ) {}
 
-    
+
     fn _set_uri(uri: felt252) {
         _uri::write(uri)
     }
 
-    
+
     fn _asSingletonArray(value: u256) -> Array<u256> {
         let mut array = ArrayTrait::new();
         array.append(value);
         array
     }
 
-    
+
     fn _balance_of_batch_iter(
         mut accounts: Array<ContractAddress>, mut ids: Array<u256>, mut res: Array<u256>
     ) -> Array<u256> {
@@ -281,7 +268,7 @@ mod ERC1155 {
         }
     }
 
-    
+
     fn _do_safe_transfer_acceptance_check(
         operator: ContractAddress,
         from: ContractAddress,
@@ -289,31 +276,30 @@ mod ERC1155 {
         id: u256,
         amount: u256,
         data: Array<felt252>
-    ) {
-        // if (IERC165Dispatcher {
-        //     contract_address: to
-        // }.supports_interface(
-        //     erc1155::IERC1155_RECEIVER_ID
-        // )) {
-            // assert(
-            //     IERC1155ReceiverDispatcher {
-            //         contract_address: to
-            //     }.onERC1155Received(
-            //         operator, from, id, amount, data
-            //     ) == erc1155::ON_ERC1155_RECEIVED_SELECTOR,
-            //     'ERC1155: receive fail'
-            // )
-        // } else {
-        //     assert(
-        //         IERC165Dispatcher {
-        //             contract_address: to
-        //         }.supports_interface(account::ERC165_ACCOUNT_ID),
-        //         'ERC1155: invalid receiver'
-        //     )
-        // }
+    ) {// if (IERC165Dispatcher {
+    //     contract_address: to
+    // }.supports_interface(
+    //     erc1155::IERC1155_RECEIVER_ID
+    // )) {
+    // assert(
+    //     IERC1155ReceiverDispatcher {
+    //         contract_address: to
+    //     }.onERC1155Received(
+    //         operator, from, id, amount, data
+    //     ) == erc1155::ON_ERC1155_RECEIVED_SELECTOR,
+    //     'ERC1155: receive fail'
+    // )
+    // } else {
+    //     assert(
+    //         IERC165Dispatcher {
+    //             contract_address: to
+    //         }.supports_interface(account::ERC165_ACCOUNT_ID),
+    //         'ERC1155: invalid receiver'
+    //     )
+    // }
     }
 
-    
+
     fn _do_safe_batch_transfer_acceptance_check(
         operator: ContractAddress,
         from: ContractAddress,
@@ -321,27 +307,26 @@ mod ERC1155 {
         ids: Array<u256>,
         amounts: Array<u256>,
         data: Array<felt252>
-    ) {
-        // if (IERC165Dispatcher {
-        //     contract_address: to
-        // }.supports_interface(
-        //     erc1155::IERC1155_RECEIVER_ID
-        // )) {
-        //     assert(
-        //         IERC1155ReceiverDispatcher {
-        //             contract_address: to
-        //         }.onERC1155BatchReceived(
-        //             operator, from, ids, amounts, data
-        //         ) == erc1155::ON_ERC1155_BATCH_RECEIVED_SELECTOR,
-        //         'ERC1155: batch receive fail'
-        //     )
-        // } else {
-        //     assert(
-        //         IERC165Dispatcher {
-        //             contract_address: to
-        //         }.supports_interface(account::ERC165_ACCOUNT_ID),
-        //         'ERC1155: invalid receiver'
-        //     )
-        // }
+    ) {// if (IERC165Dispatcher {
+    //     contract_address: to
+    // }.supports_interface(
+    //     erc1155::IERC1155_RECEIVER_ID
+    // )) {
+    //     assert(
+    //         IERC1155ReceiverDispatcher {
+    //             contract_address: to
+    //         }.onERC1155BatchReceived(
+    //             operator, from, ids, amounts, data
+    //         ) == erc1155::ON_ERC1155_BATCH_RECEIVED_SELECTOR,
+    //         'ERC1155: batch receive fail'
+    //     )
+    // } else {
+    //     assert(
+    //         IERC165Dispatcher {
+    //             contract_address: to
+    //         }.supports_interface(account::ERC165_ACCOUNT_ID),
+    //         'ERC1155: invalid receiver'
+    //     )
+    // }
     }
 }
