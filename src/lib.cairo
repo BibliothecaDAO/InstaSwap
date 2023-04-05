@@ -1,4 +1,9 @@
 // All modules must be present here
 
-mod math;
 mod test;
+
+mod utils;
+
+mod instaswap_pair;
+
+mod libraries;
