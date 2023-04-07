@@ -638,24 +638,24 @@ mod InstaSwapPair {
     //########################
 
     #[view]
-    fn supportsInterface(interface_id: u32) -> bool {
+    fn supports_interface(interface_id: u32) -> bool {
         // ERC165Contract::supports_interface(interface_id)
         return true; // TODO: need implement base on ERC165
     }
 
 
     #[view]
-    fn balanceOf(account: ContractAddress, token_id: u256, ) -> u256 {
+    fn balance_of(account: ContractAddress, token_id: u256, ) -> u256 {
         ERC1155::balance_of(account, token_id)
     }
 
     #[view]
-    fn balanceOfBatch(accounts: Array<ContractAddress>, token_ids: Array<u256>, ) -> Array<u256> {
+    fn balance_of_batch(accounts: Array<ContractAddress>, token_ids: Array<u256>, ) -> Array<u256> {
         ERC1155::balance_of_batch(accounts, token_ids)
     }
 
     #[view]
-    fn isApprovedForAll(account: ContractAddress, operator: ContractAddress, ) -> bool {
+    fn is_approved_for_all(account: ContractAddress, operator: ContractAddress, ) -> bool {
         ERC1155::is_approved_for_all(account, operator)
     }
 
@@ -678,12 +678,12 @@ mod InstaSwapPair {
     // Externals
     //
     #[external]
-    fn setApprovalForAll(operator: ContractAddress, approved: bool, ) {
+    fn set_approval_for_all(operator: ContractAddress, approved: bool, ) {
         ERC1155::set_approval_for_all(operator, approved, );
     }
 
     #[external]
-    fn safeTransferFrom(
+    fn safe_transfer_from(
         from: ContractAddress,
         to: ContractAddress,
         token_id: u256,
@@ -694,7 +694,7 @@ mod InstaSwapPair {
     }
 
     #[external]
-    fn safeBatchTransferFrom(
+    fn safe_batch_transfer_from(
         from: ContractAddress,
         to: ContractAddress,
         token_ids: Array<u256>,
