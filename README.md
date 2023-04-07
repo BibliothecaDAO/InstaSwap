@@ -13,14 +13,6 @@ Contribution are welcome! Please check the good first issues for a list of issue
 
 # Development
 
-## How it works
-
-- No submodules, forks or other heavy machinery
-- Uses the [`cairo-test-runner`](https://github.com/starkware-libs/cairo/blob/main/crates/cairo-lang-test-runner/README.md) binary for running tests
-- Built as a [Scarb](https://github.com/software-mansion/scarb) package for reusability and uses Scarb dependencies for libraries
-- Has reproducible builds using GitHub Actions
-- Includes a standard Makefile for commonly used commands
-
 ## Installing dependencies
 
 ### Step 1: Install Cairo 1.0 (guide by [Abdel](https://github.com/abdelhamidbakhta))

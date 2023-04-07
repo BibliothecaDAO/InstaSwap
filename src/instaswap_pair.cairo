@@ -76,6 +76,7 @@ mod InstaSwapPair {
         lp_fee_thousand: u256,
         royalty_fee_thousand: u256,
         royalty_fee_address: ContractAddress,
+        lp_total_supplies: LegacyMap::<u256, u256>,
     }
 
     //##############
@@ -147,6 +148,8 @@ mod InstaSwapPair {
             contract_address: token_address_
         }.balance_of(contract, *token_ids.at(0_usize));
 
+        let mut lp_total_supply_new_ = as_u256(0_u128, 0_u128);
+
         let mut currency_amount_ = as_u256(0_u128, 0_u128);
         if (lp_total_supply_ == as_u256(
             0_u128, 0_u128
@@ -157,8 +160,8 @@ mod InstaSwapPair {
                 *max_currency_amounts.at(0_usize), *token_amounts.at(0_usize)
             );
             assert(!mul_overflow, 'mul overflow');
-            let sqrt = u256_sqrt(square);
-            let (lp_amount_, sub_overflow) = u256_overflow_sub(sqrt, as_u256(1000_u128, 0_u128));
+            let lp_total_supply_new_ = u256_sqrt(square);
+            let (lp_amount_for_lp_, sub_overflow) = u256_overflow_sub(lp_total_supply_new_, as_u256(1000_u128, 0_u128));
             assert(!sub_overflow, 'sub overflow');
             IERC20Dispatcher {
                 contract_address: currency_address_
@@ -174,7 +177,7 @@ mod InstaSwapPair {
                 ArrayTrait::new()
             );
 
-            ERC1155::_mint(caller, *token_ids.at(0_usize), lp_amount_, ArrayTrait::new());
+            ERC1155::_mint(caller, *token_ids.at(0_usize), lp_amount_for_lp_, ArrayTrait::new());
 
             // permanently lock the first MINIMUM_LIQUIDITY tokens
             ERC1155::_mint(
@@ -216,12 +219,19 @@ mod InstaSwapPair {
             // let lp_amount_ = u256_div(numerator, currency_reserve_); //TODO: not support yet
             let lp_amount_ = as_u256(0_u128, 0_u128); // TODO: remove when div is supported
 
-            //TODO:  add if ERC1155 do not support totalSupply
-            // lp_reserves::write(*token_ids.at(0_usize), *currency_amounts.at(0_usize));
+            let (lp_total_supply_new_, add_overflow) = u256_overflowing_add(
+                lp_total_supply_, lp_amount_
+            );
+            assert(!add_overflow, 'add overflow');
+
 
             // Mint LP tokens to caller
             ERC1155::_mint(caller, *token_ids.at(0_usize), lp_amount_, ArrayTrait::new());
         }
+
+        // update lp_total_supplies
+        lp_total_supplies::write(*token_ids.at(0_usize), lp_total_supply_new_);
+
         let (new_currency_reserve, add_overflow) = u256_overflowing_add(
             currency_reserve_, currency_amount_
         );
@@ -234,7 +244,6 @@ mod InstaSwapPair {
         assert(!add_overflow, 'add overflow');
         token_reserves::write(*token_ids.at(0_usize), new_token_reserve);
 
-        // TODO update LP total supply
 
         // TODO Emit Event
 
@@ -313,8 +322,9 @@ mod InstaSwapPair {
         assert(!sub_overflow, 'sub overflow');
         token_reserves::write(*token_ids.at(0_usize), new_token_reserve);
 
-        //TODO: remove if ERC1155 support totalSupply
-        // lp_reserves::write(*token_ids.at(0_usize), lp_total_supply_ - *lp_amounts.at(0_usize));
+        let (lp_total_supply, sub_overflow) = u256_overflow_sub(lp_total_supply_, *lp_amounts.at(0_usize));
+        assert(!sub_overflow, 'sub overflow');
+        lp_total_supplies::write(*token_ids.at(0_usize), lp_total_supply);
 
         // Transfer currency to caller
         IERC20Dispatcher { contract_address: currency_address_ }.transfer(caller, currency_amount_);
@@ -671,7 +681,7 @@ mod InstaSwapPair {
 
     #[view]
     fn get_lp_supply(token_id: u256) -> u256 {
-        return as_u256(1_u128, 0_u128); // TODO: need implement base on ERC1155 library
+        return lp_total_supplies::read(token_id);
     }
 
     //
