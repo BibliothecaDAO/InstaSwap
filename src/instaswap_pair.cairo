@@ -1,4 +1,39 @@
-// a exchange that can exchange erc20 token to erc1155 token
+use starknet::ContractAddress;
+use array::ArrayTrait;
+
+#[abi]
+trait IERC20 {
+    fn name() -> felt252;
+    fn symbol() -> felt252;
+    fn decimals() -> u8;
+    fn total_supply() -> u256;
+    fn balance_of(account: ContractAddress) -> u256;
+    fn allowance(owner: ContractAddress, spender: ContractAddress) -> u256;
+    fn transfer(recipient: ContractAddress, amount: u256) -> bool;
+    fn transfer_from(sender: ContractAddress, recipient: ContractAddress, amount: u256) -> bool;
+    fn approve(spender: ContractAddress, amount: u256) -> bool;
+}
+
+#[abi]
+trait IERC1155 {
+    // IERC1155
+    fn balance_of(account: ContractAddress, id: u256) -> u256;
+    fn balance_of_batch(accounts: Array<ContractAddress>, ids: Array<u256>) -> Array<u256>;
+    fn is_approved_for_all(account: ContractAddress, operator: ContractAddress) -> bool;
+    fn set_approval_for_all(operator: ContractAddress, approved: bool);
+    fn safe_transfer_from(
+        from: ContractAddress, to: ContractAddress, id: u256, amount: u256, data: Array<felt252>
+    );
+    fn safe_batch_transfer_from(
+        from: ContractAddress,
+        to: ContractAddress,
+        ids: Array<u256>,
+        amounts: Array<u256>,
+        data: Array<felt252>
+    );
+    // IERC1155MetadataURI
+    fn uri(id: u256) -> felt252;
+}
 #[contract]
 mod InstaSwapPair {
     use zeroable::Zeroable;
@@ -23,6 +58,10 @@ mod InstaSwapPair {
     use integer::u256_overflow_sub;
     use instaswap::utils::helper::as_u256;
     use instaswap::utils::helper::u256_sqrt;
+    use super::IERC1155Dispatcher;
+    use super::IERC1155DispatcherTrait;
+    use super::IERC20Dispatcher;
+    use super::IERC20DispatcherTrait;
 
     use instaswap::libraries::library_erc1155::ERC1155; // TODO: remove when openzeppelin ERC1155 library is supported
     // use openzeppelin::introspection::erc165::ERC165Contract; // TODO: remove when openzeppelin ERC165 library is supported
@@ -37,41 +76,6 @@ mod InstaSwapPair {
         lp_fee_thousand: u256,
         royalty_fee_thousand: u256,
         royalty_fee_address: ContractAddress,
-    }
-
-
-    #[abi]
-    trait IERC20 {
-        fn name() -> felt252;
-        fn symbol() -> felt252;
-        fn decimals() -> u8;
-        fn total_supply() -> u256;
-        fn balance_of(account: ContractAddress) -> u256;
-        fn allowance(owner: ContractAddress, spender: ContractAddress) -> u256;
-        fn transfer(recipient: ContractAddress, amount: u256) -> bool;
-        fn transfer_from(sender: ContractAddress, recipient: ContractAddress, amount: u256) -> bool;
-        fn approve(spender: ContractAddress, amount: u256) -> bool;
-    }
-
-    #[abi]
-    trait IERC1155 {
-        // IERC1155
-        fn balance_of(account: ContractAddress, id: u256) -> u256;
-        fn balance_of_batch(accounts: Array<ContractAddress>, ids: Array<u256>) -> Array<u256>;
-        fn is_approved_for_all(account: ContractAddress, operator: ContractAddress) -> bool;
-        fn set_approval_for_all(operator: ContractAddress, approved: bool);
-        fn safe_transfer_from(
-            from: ContractAddress, to: ContractAddress, id: u256, amount: u256, data: Array<felt252>
-        );
-        fn safe_batch_transfer_from(
-            from: ContractAddress,
-            to: ContractAddress,
-            ids: Array<u256>,
-            amounts: Array<u256>,
-            data: Array<felt252>
-        );
-        // IERC1155MetadataURI
-        fn uri(id: u256) -> felt252;
     }
 
     //##############
@@ -309,7 +313,7 @@ mod InstaSwapPair {
         assert(!sub_overflow, 'sub overflow');
         token_reserves::write(*token_ids.at(0_usize), new_token_reserve);
 
-        //TODO: remove if ERC1155 not support totalSupply
+        //TODO: remove if ERC1155 support totalSupply
         // lp_reserves::write(*token_ids.at(0_usize), lp_total_supply_ - *lp_amounts.at(0_usize));
 
         // Transfer currency to caller
