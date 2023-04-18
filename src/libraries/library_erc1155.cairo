@@ -64,7 +64,6 @@ mod ERC1155 {
     use super::ArrayTrait;
     use super::ContractAddress;
     use starknet::contract_address_const;
-    use starknet::ContractAddressZeroable;
     use starknet::get_caller_address;
     use integer::u256_from_felt252;
     use option::OptionTrait;

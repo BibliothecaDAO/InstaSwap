@@ -40,7 +40,6 @@ mod InstaSwapPair {
     use starknet::get_caller_address;
     use starknet::contract_address_const;
     use starknet::ContractAddress;
-    use starknet::ContractAddressZeroable;
     use array::ArrayTrait;
     use array::SpanTrait;
     use dict::Felt252DictTrait;
