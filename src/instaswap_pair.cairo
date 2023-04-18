@@ -61,6 +61,10 @@ mod InstaSwapPair {
     use super::IERC1155DispatcherTrait;
     use super::IERC20Dispatcher;
     use super::IERC20DispatcherTrait;
+    use instaswap::libraries::upgradeable::Upgradeable;
+    use starknet::class_hash::ClassHash;
+    use instaswap::libraries::upgradeable::Upgradeable::assert_only_admin;
+
 
     use instaswap::libraries::library_erc1155::ERC1155; // TODO: remove when openzeppelin ERC1155 library is supported
     // use openzeppelin::introspection::erc165::ERC165Contract; // TODO: remove when openzeppelin ERC165 library is supported
@@ -83,21 +87,20 @@ mod InstaSwapPair {
     //##############
 
     #[external]
-    fn initializer(
+    fn constructor(
         uri: felt252,
         currency_address_: ContractAddress,
         token_address_: ContractAddress,
         lp_fee_thousand_: u256,
         royalty_fee_thousand_: u256,
         royalty_fee_address_: ContractAddress,
-        proxy_admin: ContractAddress,
+        contract_admin: ContractAddress,
     ) {
         currency_address::write(currency_address_);
         token_address::write(token_address_);
         lp_fee_thousand::write(lp_fee_thousand_);
         set_royalty_info(royalty_fee_thousand_, royalty_fee_address_);
-    //TODO proxy logic
-    //TODO ownable initializer
+    Upgradeable::initializer(contract_admin);
 
     //TODO ERC1155 initializer
 
@@ -105,8 +108,8 @@ mod InstaSwapPair {
     }
 
     #[external]
-    fn upgrade() {//TODO: Ownable check
-    //Proxy set implementation
+    fn upgrade(impl_hash: ClassHash) {
+        Upgradeable::_upgrade(impl_hash);        
     }
 
     //#####
@@ -718,7 +721,7 @@ mod InstaSwapPair {
     //########
     #[external]
     fn set_royalty_info(royalty_fee_thousand_: u256, royalty_fee_address_: ContractAddress, ) {
-        // TODO: check admin
+        assert_only_admin();
 
         royalty_fee_thousand::write(royalty_fee_thousand_);
         royalty_fee_address::write(royalty_fee_address_);
@@ -726,7 +729,7 @@ mod InstaSwapPair {
 
     #[external]
     fn set_lp_info(lp_fee_thousand: u256, ) {
-        //TODO: check admin
+        assert_only_admin();
 
         lp_fee_thousand::write(lp_fee_thousand);
     }

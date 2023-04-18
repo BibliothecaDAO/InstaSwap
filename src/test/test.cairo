@@ -30,7 +30,7 @@ fn setup() -> (ContractAddress, u256) {
     set_caller_address(account);
 
     // ERC20::constructor(NAME, SYMBOL, initial_supply, account);
-    InstaSwapPair::initializer(
+    InstaSwapPair::constructor(
         NAME,
         contract_address_const::<2>(), // TODO remove
         contract_address_const::<3>(), // TODO remove
