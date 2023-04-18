@@ -52,9 +52,6 @@ mod InstaSwapPair {
     use clone::Clone;
     use array::ArrayTCloneImpl;
     use instaswap::utils::helper::check_gas;
-    use integer::u256_overflow_mul;
-    use integer::u256_overflowing_add;
-    use integer::u256_overflow_sub;
     use instaswap::utils::helper::as_u256;
     use instaswap::utils::helper::u256_sqrt;
     use super::IERC1155Dispatcher;
@@ -157,15 +154,10 @@ mod InstaSwapPair {
         )) {
             currency_amount_ = *max_currency_amounts.at(0_usize);
 
-            let (square, mul_overflow) = u256_overflow_mul(
-                *max_currency_amounts.at(0_usize), *token_amounts.at(0_usize)
-            );
-            assert(!mul_overflow, 'mul overflow');
+            let square = (*max_currency_amounts.at(0_usize)) * (*token_amounts.at(0_usize));
+
             let lp_total_supply_new_ = u256_sqrt(square);
-            let (lp_amount_for_lp_, sub_overflow) = u256_overflow_sub(
-                lp_total_supply_new_, as_u256(1000_u128, 0_u128)
-            );
-            assert(!sub_overflow, 'sub overflow');
+            let lp_amount_for_lp_ = lp_total_supply_new_ - as_u256(1000_u128, 0_u128);
             IERC20Dispatcher {
                 contract_address: currency_address_
             }.transfer_from(caller, contract, currency_amount_);
@@ -193,13 +185,8 @@ mod InstaSwapPair {
             // Required price calc
             // X/Y = dx/dy
             // dx = X*dy/Y
-            let (numerator, mul_overflow) = u256_overflow_mul(
-                currency_reserve_, *token_amounts.at(0_usize)
-            );
-            assert(!mul_overflow, 'mul overflow');
-
-            // let currency_amount_ = u256_div(numerator, token_reserve_); //TODO: not support yet
-            currency_amount_ = as_u256(0_u128, 0_u128); // TODO: remove when div is supported
+            let numerator = currency_reserve_ * (*token_amounts.at(0_usize));
+            let currency_amount_ = numerator / token_reserve_; 
             assert(currency_amount_ <= *max_currency_amounts.at(0_usize), 'amount too high');
 
             // Transfer currency to contract
@@ -217,15 +204,8 @@ mod InstaSwapPair {
                 ArrayTrait::new()
             );
 
-            let (numerator, mul_overflow) = u256_overflow_mul(lp_total_supply_, currency_amount_);
-            assert(!mul_overflow, 'mul overflow');
-            // let lp_amount_ = u256_div(numerator, currency_reserve_); //TODO: not support yet
-            let lp_amount_ = as_u256(0_u128, 0_u128); // TODO: remove when div is supported
-
-            let (lp_total_supply_new_, add_overflow) = u256_overflowing_add(
-                lp_total_supply_, lp_amount_
-            );
-            assert(!add_overflow, 'add overflow');
+            let lp_amount_ = lp_total_supply_ * currency_amount_ / currency_reserve_;
+            let lp_total_supply_new_ = lp_total_supply_ + lp_amount_;
 
             // Mint LP tokens to caller
             ERC1155::_mint(caller, *token_ids.at(0_usize), lp_amount_, ArrayTrait::new());
@@ -234,16 +214,10 @@ mod InstaSwapPair {
         // update lp_total_supplies
         lp_total_supplies::write(*token_ids.at(0_usize), lp_total_supply_new_);
 
-        let (new_currency_reserve, add_overflow) = u256_overflowing_add(
-            currency_reserve_, currency_amount_
-        );
-        assert(!add_overflow, 'add overflow');
+        let new_currency_reserve = currency_reserve_ + currency_amount_;
         currency_reserves::write(*token_ids.at(0_usize), new_currency_reserve);
 
-        let (new_token_reserve, add_overflow) = u256_overflowing_add(
-            token_reserve_, *token_amounts.at(0_usize)
-        );
-        assert(!add_overflow, 'add overflow');
+        let new_token_reserve = token_reserve_ + *token_amounts.at(0_usize);
         token_reserves::write(*token_ids.at(0_usize), new_token_reserve);
 
         // TODO Emit Event
@@ -296,37 +270,24 @@ mod InstaSwapPair {
 
         assert(lp_total_supply_ > *lp_amounts.at(0_usize), 'insufficient lp supply');
 
-        let (numerator, mul_overflow) = u256_overflow_mul(
-            currency_reserve_, *lp_amounts.at(0_usize)
-        );
-        assert(!mul_overflow, 'mul overflow');
-        // let currency_amount_ = u256_div(numerator, lp_total_supply_); //TODO: not support yet
-        let currency_amount_ = as_u256(0_u128, 0_u128); // TODO: remove when div is supported
+        let numerator = currency_reserve_ * (*lp_amounts.at(0_usize));
+        let currency_amount_ = numerator / lp_total_supply_;
         assert(currency_amount_ >= *min_currency_amounts.at(0_usize), 'amount too low');
 
-        let (numerator, mul_overflow) = u256_overflow_mul(token_reserve_, *lp_amounts.at(0_usize));
-        assert(!mul_overflow, 'mul overflow');
-        // let token_amount_ = u256_div(numerator, lp_total_supply_); //TODO: not support yet
-        let token_amount_ = as_u256(0_u128, 0_u128); // TODO: remove when div is supported
+        let numerator = token_reserve_ * (*lp_amounts.at(0_usize));
+        let token_amount_ = numerator / lp_total_supply_;
         assert(token_amount_ >= *min_token_amounts.at(0_usize), 'amount too low');
 
         // Burn LP tokens from caller
         ERC1155::_burn(caller, *token_ids.at(0_usize), *lp_amounts.at(0_usize));
 
-        let (new_currency_reserve, sub_overflow) = u256_overflow_sub(
-            currency_reserve_, currency_amount_
-        );
-        assert(!sub_overflow, 'sub overflow');
+        let new_currency_reserve = currency_reserve_ - currency_amount_;
         currency_reserves::write(*token_ids.at(0_usize), new_currency_reserve);
 
-        let (new_token_reserve, sub_overflow) = u256_overflow_sub(token_reserve_, token_amount_);
-        assert(!sub_overflow, 'sub overflow');
+        let new_token_reserve = token_reserve_ - token_amount_;
         token_reserves::write(*token_ids.at(0_usize), new_token_reserve);
 
-        let (lp_total_supply, sub_overflow) = u256_overflow_sub(
-            lp_total_supply_, *lp_amounts.at(0_usize)
-        );
-        assert(!sub_overflow, 'sub overflow');
+        let lp_total_supply = lp_total_supply_ - *lp_amounts.at(0_usize);
         lp_total_supplies::write(*token_ids.at(0_usize), lp_total_supply);
 
         // Transfer currency to caller
@@ -370,7 +331,7 @@ mod InstaSwapPair {
         return currency_amount;
     }
 
-    fn buy_tokens_loop(mut token_ids: Array<u256>, mut token_amounts: Array<u256>, ) -> u256 {
+    fn buy_tokens_loop(mut token_ids: Array<u256>, mut token_amounts: Array<u256>) -> u256 {
         check_gas();
         if (token_ids.len() == 0_usize) {
             return as_u256(0_u128, 0_u128);
@@ -394,10 +355,7 @@ mod InstaSwapPair {
         let currency_amount_ = currency_amount_sans_royal_ + royalty_;
 
         // Update reserve 
-        let (new_currency_reserve, add_overflow) = u256_overflowing_add(
-            currency_reserve_, currency_amount_
-        );
-        assert(!add_overflow, 'add overflow');
+        let new_currency_reserve = currency_reserve_ + currency_amount_;
         currency_reserves::write(*token_ids.at(0_usize), new_currency_reserve);
 
         // Transfer currency from caller
@@ -421,11 +379,9 @@ mod InstaSwapPair {
         token_ids.pop_front();
         token_amounts.pop_front();
 
-        let mut currency_total_ = buy_tokens_loop(token_ids, token_amounts, );
-        let (new_currency_total, add_overflow) = u256_overflowing_add(
-            currency_total_, currency_amount_
-        );
-        assert(!add_overflow, 'add overflow');
+        let mut currency_total_ = buy_tokens_loop(token_ids, token_amounts);
+
+        let new_currency_total = currency_total_ + currency_amount_;
         return new_currency_total;
     }
 
@@ -450,7 +406,7 @@ mod InstaSwapPair {
         return currency_amount;
     }
 
-    fn sell_tokens_loop(mut token_ids: Array<u256>, mut token_amounts: Array<u256>, ) -> u256 {
+    fn sell_tokens_loop(mut token_ids: Array<u256>, mut token_amounts: Array<u256>) -> u256 {
         check_gas();
         if (token_ids.len() == 0_usize) {
             return as_u256(0_u128, 0_u128);
@@ -474,10 +430,7 @@ mod InstaSwapPair {
         let currency_amount_ = currency_amount_sans_royal_ - royalty_;
 
         // Update reserve
-        let (new_currency_reserve, sub_overflow) = u256_overflow_sub(
-            currency_reserve_, currency_amount_
-        );
-        assert(!sub_overflow, 'sub overflow');
+        let new_currency_reserve = currency_reserve_ - currency_amount_;
         currency_reserves::write(*token_ids.at(0_usize), new_currency_reserve);
 
         // Transfer currency to caller
@@ -499,11 +452,8 @@ mod InstaSwapPair {
         token_ids.pop_front();
         token_amounts.pop_front();
 
-        let mut currency_total_ = sell_tokens_loop(token_ids, token_amounts, );
-        let (new_currency_total, add_overflow) = u256_overflowing_add(
-            currency_total_, currency_amount_
-        );
-        assert(!add_overflow, 'add overflow');
+        let mut currency_total_ = sell_tokens_loop(token_ids, token_amounts);
+        let new_currency_total = currency_total_ + currency_amount_;
         return new_currency_total;
     }
 
@@ -514,11 +464,9 @@ mod InstaSwapPair {
     #[view]
     fn get_royalty_with_amount(amount_sans_royalty: u256) -> u256 {
         let royalty_fee_thousand_ = royalty_fee_thousand::read();
-        let (royalty, mul_overflow) = u256_overflow_mul(amount_sans_royalty, royalty_fee_thousand_);
-        assert(!mul_overflow, 'mul overflow');
+        let royalty = amount_sans_royalty * royalty_fee_thousand_;
 
-        // let (royalty, div_overflow) = u256_overflowing_div(royalty, as_u256(1000_u128, 0_u128)); // TODO: not support yet
-        let royalty = as_u256(0_u128, 0_u128); // TODO: remove this line
+        let royalty = royalty / as_u256(1000_u128, 0_u128);
         return royalty;
     }
 
@@ -636,10 +584,8 @@ mod InstaSwapPair {
             *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
         );
         let royalty_ = get_royalty_with_amount(currency_amount_sans_royal_, );
-        let (currency_amount_, add_overflow_) = u256_overflowing_add(
-            currency_amount_sans_royal_, royalty_, 
-        );
-        assert(!add_overflow_, 'add overflow');
+
+        let currency_amount_ = currency_amount_sans_royal_ - royalty_;
         currency_amounts_.append(currency_amount_);
         token_ids.pop_front();
         token_amounts.pop_front();
