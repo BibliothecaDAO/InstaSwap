@@ -93,11 +93,11 @@ mod InstaSwapPair {
         royalty_fee_address_: ContractAddress,
         contract_admin: ContractAddress,
     ) {
+        Upgradeable::initializer(contract_admin);
         currency_address::write(currency_address_);
         token_address::write(token_address_);
         lp_fee_thousand::write(lp_fee_thousand_);
         set_royalty_info(royalty_fee_thousand_, royalty_fee_address_);
-        Upgradeable::initializer(contract_admin);
     //TODO ERC1155 initializer
 
     //TODO ERC165 interface register
