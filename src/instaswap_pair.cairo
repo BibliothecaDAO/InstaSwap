@@ -100,8 +100,7 @@ mod InstaSwapPair {
         token_address::write(token_address_);
         lp_fee_thousand::write(lp_fee_thousand_);
         set_royalty_info(royalty_fee_thousand_, royalty_fee_address_);
-    Upgradeable::initializer(contract_admin);
-
+        Upgradeable::initializer(contract_admin);
     //TODO ERC1155 initializer
 
     //TODO ERC165 interface register
@@ -109,7 +108,7 @@ mod InstaSwapPair {
 
     #[external]
     fn upgrade(impl_hash: ClassHash) {
-        Upgradeable::_upgrade(impl_hash);        
+        Upgradeable::_upgrade(impl_hash);
     }
 
     //#####
@@ -163,7 +162,9 @@ mod InstaSwapPair {
             );
             assert(!mul_overflow, 'mul overflow');
             let lp_total_supply_new_ = u256_sqrt(square);
-            let (lp_amount_for_lp_, sub_overflow) = u256_overflow_sub(lp_total_supply_new_, as_u256(1000_u128, 0_u128));
+            let (lp_amount_for_lp_, sub_overflow) = u256_overflow_sub(
+                lp_total_supply_new_, as_u256(1000_u128, 0_u128)
+            );
             assert(!sub_overflow, 'sub overflow');
             IERC20Dispatcher {
                 contract_address: currency_address_
@@ -226,7 +227,6 @@ mod InstaSwapPair {
             );
             assert(!add_overflow, 'add overflow');
 
-
             // Mint LP tokens to caller
             ERC1155::_mint(caller, *token_ids.at(0_usize), lp_amount_, ArrayTrait::new());
         }
@@ -245,7 +245,6 @@ mod InstaSwapPair {
         );
         assert(!add_overflow, 'add overflow');
         token_reserves::write(*token_ids.at(0_usize), new_token_reserve);
-
 
         // TODO Emit Event
 
@@ -324,7 +323,9 @@ mod InstaSwapPair {
         assert(!sub_overflow, 'sub overflow');
         token_reserves::write(*token_ids.at(0_usize), new_token_reserve);
 
-        let (lp_total_supply, sub_overflow) = u256_overflow_sub(lp_total_supply_, *lp_amounts.at(0_usize));
+        let (lp_total_supply, sub_overflow) = u256_overflow_sub(
+            lp_total_supply_, *lp_amounts.at(0_usize)
+        );
         assert(!sub_overflow, 'sub overflow');
         lp_total_supplies::write(*token_ids.at(0_usize), lp_total_supply);
 

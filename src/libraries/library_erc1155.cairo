@@ -275,7 +275,7 @@ mod ERC1155 {
         id: u256,
         amount: u256,
         data: Array<felt252>
-    ) {// if (IERC165Dispatcher {
+    ) { // if (IERC165Dispatcher {
     //     contract_address: to
     // }.supports_interface(
     //     erc1155::IERC1155_RECEIVER_ID
@@ -306,7 +306,7 @@ mod ERC1155 {
         ids: Array<u256>,
         amounts: Array<u256>,
         data: Array<felt252>
-    ) {// if (IERC165Dispatcher {
+    ) { // if (IERC165Dispatcher {
     //     contract_address: to
     // }.supports_interface(
     //     erc1155::IERC1155_RECEIVER_ID
