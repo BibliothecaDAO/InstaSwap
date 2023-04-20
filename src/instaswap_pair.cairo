@@ -51,7 +51,6 @@ mod InstaSwapPair {
     use box::BoxTrait;
     use clone::Clone;
     use array::ArrayTCloneImpl;
-    use instaswap::utils::helper::check_gas;
     use instaswap::utils::helper::as_u256;
     use instaswap::utils::helper::u256_sqrt;
     use super::IERC1155Dispatcher;
@@ -131,7 +130,6 @@ mod InstaSwapPair {
         mut token_ids: Array<u256>,
         mut token_amounts: Array<u256>,
     ) {
-        check_gas();
         if (max_currency_amounts.len() == 0_usize) {
             return ();
         }
@@ -253,7 +251,7 @@ mod InstaSwapPair {
         mut min_token_amounts: Array<u256>,
         mut lp_amounts: Array<u256>,
     ) {
-        check_gas();
+        
         if (min_currency_amounts.len() == 0_usize) {
             return ();
         }
@@ -332,7 +330,7 @@ mod InstaSwapPair {
     }
 
     fn buy_tokens_loop(mut token_ids: Array<u256>, mut token_amounts: Array<u256>) -> u256 {
-        check_gas();
+        
         if (token_ids.len() == 0_usize) {
             return as_u256(0_u128, 0_u128);
         }
@@ -407,7 +405,7 @@ mod InstaSwapPair {
     }
 
     fn sell_tokens_loop(mut token_ids: Array<u256>, mut token_amounts: Array<u256>) -> u256 {
-        check_gas();
+        
         if (token_ids.len() == 0_usize) {
             return as_u256(0_u128, 0_u128);
         }
@@ -540,7 +538,7 @@ mod InstaSwapPair {
         mut token_amounts: Array<u256>,
         ref currency_amounts_: Array<u256>,
     ) {
-        check_gas();
+        
         if (token_ids.len() == 0_usize) {
             return ();
         }
@@ -573,7 +571,7 @@ mod InstaSwapPair {
         mut token_amounts: Array<u256>,
         ref currency_amounts_: Array<u256>,
     ) {
-        check_gas();
+        
         if (token_ids.len() == 0_usize) {
             return ();
         }

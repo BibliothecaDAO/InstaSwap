@@ -58,7 +58,6 @@ mod ERC1155 {
     // use openzeppelin::introspection::erc165::IERC165DispatcherTrait;
     use super::IERC1155ReceiverDispatcher;
     use super::IERC1155ReceiverDispatcherTrait;
-    use instaswap::utils::helper::check_gas;
 
     // Other
     use super::ArrayTrait;
@@ -253,7 +252,6 @@ mod ERC1155 {
     fn _balance_of_batch_iter(
         mut accounts: Array<ContractAddress>, mut ids: Array<u256>, mut res: Array<u256>
     ) -> Array<u256> {
-        check_gas();
         match accounts.pop_front() {
             Option::Some(account) => {
                 let id = ids.pop_front().expect('ERC1155 invalid array length');
