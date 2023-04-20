@@ -8,7 +8,3 @@ use gas::get_builtin_costs;
 fn as_u256(high: u128, low: u128) -> u256 {
     u256 { low, high }
 }
-
-fn u256_sqrt(mut y: u256, ) -> u256 {
-    
-}

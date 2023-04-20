@@ -52,7 +52,6 @@ mod InstaSwapPair {
     use clone::Clone;
     use array::ArrayTCloneImpl;
     use instaswap::utils::helper::as_u256;
-    use instaswap::utils::helper::u256_sqrt;
     use super::IERC1155Dispatcher;
     use super::IERC1155DispatcherTrait;
     use super::IERC20Dispatcher;
@@ -153,8 +152,11 @@ mod InstaSwapPair {
             currency_amount_ = *max_currency_amounts.at(0_usize);
 
             let square = (*max_currency_amounts.at(0_usize)) * (*token_amounts.at(0_usize));
-
-            let lp_total_supply_new_ = u256_sqrt(square);
+            //TODO: using u256 once u256_sqrt is supported
+            let lp_total_supply_new_: u256 = as_u256(
+                u128_sqrt(square.low),
+                0_u128
+            );
             let lp_amount_for_lp_ = lp_total_supply_new_ - as_u256(1000_u128, 0_u128);
             IERC20Dispatcher {
                 contract_address: currency_address_
