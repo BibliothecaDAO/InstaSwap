@@ -7,3 +7,5 @@ mod utils;
 mod instaswap_pair;
 
 mod libraries;
+
+mod instaswap_factory;

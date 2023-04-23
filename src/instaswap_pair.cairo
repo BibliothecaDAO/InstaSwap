@@ -40,6 +40,7 @@ mod InstaSwapPair {
     use starknet::get_caller_address;
     use starknet::contract_address_const;
     use starknet::ContractAddress;
+    use starknet::ContractAddressIntoFelt252;
     use array::ArrayTrait;
     use array::SpanTrait;
     use dict::Felt252DictTrait;
@@ -625,7 +626,7 @@ mod InstaSwapPair {
 
     #[view]
     fn owner() -> felt252 {
-        return 0; // TODO: need implement base on Ownable library
+        return Upgradeable::get_admin().into();
     }
 
     #[view]
