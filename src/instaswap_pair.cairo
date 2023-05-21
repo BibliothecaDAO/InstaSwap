@@ -153,9 +153,8 @@ mod InstaSwapPair {
             currency_amount_ = *max_currency_amounts.at(0_usize);
 
             let square = (*max_currency_amounts.at(0_usize)) * (*token_amounts.at(0_usize));
-            //TODO: using u256 once u256_sqrt is supported
             let lp_total_supply_new_: u256 = as_u256(
-                u128_sqrt(square.low),
+                u256_sqrt(square),
                 0_u128
             );
             let lp_amount_for_lp_ = lp_total_supply_new_ - as_u256(1000_u128, 0_u128);

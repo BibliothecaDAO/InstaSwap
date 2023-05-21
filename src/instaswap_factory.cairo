@@ -57,13 +57,14 @@ mod InstaSwapFactory {
         let salt = 0;
 
         let mut output = ArrayTrait::new();
-        Serde::serialize(ref output, '');
-        Serde::serialize(ref output, token_m.into());
-        Serde::serialize(ref output, token_n.into());
-        Serde::serialize(ref output, lp_fee_thousand::read());
-        Serde::serialize(ref output, royalty_fee_thousand::read());
-        Serde::serialize(ref output, royalty_fee_recipient::read());
-        Serde::serialize(ref output, contract_admin::read().into());
+        let uri = '';
+        uri.serialize(ref output);
+        token_m.serialize(ref output);
+        token_n.serialize(ref output);
+        lp_fee_thousand::read().serialize(ref output);
+        royalty_fee_thousand::read().serialize(ref output);
+        royalty_fee_recipient::read().serialize(ref output);
+        contract_admin::read().serialize(ref output);
         let mut serialized = output.span();
 
 
