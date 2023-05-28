@@ -82,7 +82,7 @@ mod InstaSwapPair {
     // CONSTRUCTOR #
     //##############
 
-    #[external]
+    #[constructor]
     fn constructor(
         uri: felt252,
         currency_address_: ContractAddress,
