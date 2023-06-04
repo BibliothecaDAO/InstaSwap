@@ -8,5 +8,7 @@ homepage = "https://github.com/auditless/cairo-template"
 # Note: currently testing doesn't work with dependencies
 # [dependencies]
 # quaireaux = { git = "https://github.com/keep-starknet-strange/quaireaux.git" }
+[dependencies]
+starknet = ">=1.1.0"
 
 [[target.starknet-contract]]
