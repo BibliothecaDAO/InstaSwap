@@ -52,7 +52,6 @@ mod InstaSwapPair {
     use box::BoxTrait;
     use clone::Clone;
     use array::ArrayTCloneImpl;
-    use instaswap::utils::helper::as_u256;
     use super::IERC1155Dispatcher;
     use super::IERC1155DispatcherTrait;
     use super::IERC20Dispatcher;
@@ -144,20 +143,16 @@ mod InstaSwapPair {
             contract_address: token_address_
         }.balance_of(contract, *token_ids.at(0_usize));
 
-        let mut lp_total_supply_new_ = as_u256(0_u128, 0_u128);
+        let mut lp_total_supply_new_ = 0.into();
 
-        let mut currency_amount_ = as_u256(0_u128, 0_u128);
-        if (lp_total_supply_ == as_u256(
-            0_u128, 0_u128
-        )) {
+        let mut currency_amount_ = 0.into();
+        if (lp_total_supply_ == 0.into()) {
             currency_amount_ = *max_currency_amounts.at(0_usize);
 
             let square = (*max_currency_amounts.at(0_usize)) * (*token_amounts.at(0_usize));
-            let lp_total_supply_new_: u256 = as_u256(
-                u256_sqrt(square),
-                0_u128
-            );
-            let lp_amount_for_lp_ = lp_total_supply_new_ - as_u256(1000_u128, 0_u128);
+            let lp_total_supply_new_felt: felt252 = u256_sqrt(square).into();
+            let lp_total_supply_new_ = lp_total_supply_new_felt.into();
+            let lp_amount_for_lp_ = lp_total_supply_new_ - 1000.into();
             IERC20Dispatcher {
                 contract_address: currency_address_
             }.transfer_from(caller, contract, currency_amount_);
@@ -178,7 +173,7 @@ mod InstaSwapPair {
             ERC1155::_mint(
                 contract_address_const::<0>(),
                 *token_ids.at(0_usize),
-                as_u256(1000_u128, 0_u128),
+                1000.into(),
                 ArrayTrait::new()
             );
         } else {
@@ -334,7 +329,7 @@ mod InstaSwapPair {
     fn buy_tokens_loop(mut token_ids: Array<u256>, mut token_amounts: Array<u256>) -> u256 {
         
         if (token_ids.len() == 0_usize) {
-            return as_u256(0_u128, 0_u128);
+            return 0.into();
         }
         let caller = starknet::get_caller_address();
         let contract = starknet::get_contract_address();
@@ -409,7 +404,7 @@ mod InstaSwapPair {
     fn sell_tokens_loop(mut token_ids: Array<u256>, mut token_amounts: Array<u256>) -> u256 {
         
         if (token_ids.len() == 0_usize) {
-            return as_u256(0_u128, 0_u128);
+            return 0.into();
         }
         let caller = starknet::get_caller_address();
         let contract = starknet::get_contract_address();
@@ -466,7 +461,7 @@ mod InstaSwapPair {
         let royalty_fee_thousand_ = royalty_fee_thousand::read();
         let royalty = amount_sans_royalty * royalty_fee_thousand_;
 
-        let royalty = royalty / as_u256(1000_u128, 0_u128);
+        let royalty = royalty / 1000.into();
         return royalty;
     }
 
