@@ -13,31 +13,33 @@ trait AMM {
 }
 
 impl AMMImpl of AMM {
+    // @dev it's almost same as swap currency for exact tokens. The currency represents ERC20, and token represents ERC1155 tokens.
     fn get_currency_amount_when_buy(
         token_amount: u256, currency_reserve: u256, token_reserve: u256, lp_fee_thousand: u256, 
     ) -> u256 {
         // formula: (x - (1 + r)delta_x) * (y + delta_y) = k
         // compute: delta_x = x * delta_y / (y - delta_y) / (1 - r)
-        let fee_multiplier_ = 1000.into() - lp_fee_thousand;
-        let (numerator, mul_overflow) = u256_overflow_mul(token_amount, currency_reserve);
-        assert(!mul_overflow, 'mul overflow');
-        let (numerator, mul_overflow) = u256_overflow_mul(numerator, 1000.into());
-        assert(!mul_overflow, 'mul overflow');
-        let (denominator, sub_overflow) = u256_overflow_sub(token_reserve, token_amount);
-        assert(!sub_overflow, 'sub overflow');
-        let (denominator, mul_overflow) = u256_overflow_mul(denominator, fee_multiplier_);
-        assert(!mul_overflow, 'mul overflow');
 
-        // need to round up the result
-        // TODO: div not support yet
+        let delta_x = 
+
+
+        // let fee_multiplier_ = 1000.into() - lp_fee_thousand;
+        // let (numerator, mul_overflow) = u256_overflow_mul(token_amount, currency_reserve);
+        // assert(!mul_overflow, 'mul overflow');
+        // let (numerator, mul_overflow) = u256_overflow_mul(numerator, 1000.into());
+        // assert(!mul_overflow, 'mul overflow');
+        // let (denominator, sub_overflow) = u256_overflow_sub(token_reserve, token_amount);
+        // assert(!sub_overflow, 'sub overflow');
+        // let (denominator, mul_overflow) = u256_overflow_mul(denominator, fee_multiplier_);
+        // assert(!mul_overflow, 'mul overflow');
+
+        // // need to round up the result
         // let (amount, rem) = u256_overflowing_div(numerator, denominator);
         // if (rem > 0) {
         //     let (amount, add_overflow) = u256_overflowing_add(amount, 1);
         //     assert(!add_overflow, 'add overflow');
         // }
-
-        let amount = 0.into();
-
+        
         return amount;
     }
 

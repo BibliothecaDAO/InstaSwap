@@ -9,6 +9,10 @@ homepage = "https://github.com/auditless/cairo-template"
 # [dependencies]
 # quaireaux = { git = "https://github.com/keep-starknet-strange/quaireaux.git" }
 [dependencies]
-starknet = ">=1.1.0"
+starknet = "2.0.0"
 
 [[target.starknet-contract]]
+sierra = true
+casm = true
+casm-add-pythonic-hints = true
+allowed-libfuncs-list.name = "experimental"

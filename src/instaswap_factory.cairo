@@ -1,4 +1,4 @@
-#[contract]
+#[starknet::contract]
 mod InstaSwapFactory {
     use zeroable::Zeroable;
     use starknet::syscalls::deploy_syscall;
@@ -11,6 +11,7 @@ mod InstaSwapFactory {
     use option::OptionTrait;
     use starknet::class_hash::ClassHash;
 
+    #[storage]
     struct Storage {
         pair_contract_class_hash: ClassHash,
         contract_admin: ContractAddress,
@@ -24,23 +25,22 @@ mod InstaSwapFactory {
     // CONSTRUCTOR #
     //##############
 
-    #[external]
-    fn constructor(
+    #[constructor]
+    fn constructor(ref self: ContractState, 
         pair_contract_class_hash_: ClassHash,
         lp_fee_thousand_: u256,
         royalty_fee_thousand_: u256,
         royalty_fee_recipient_: ContractAddress,
         contract_admin_: ContractAddress,
     ) {
-        lp_fee_thousand::write(lp_fee_thousand_);
-        royalty_fee_thousand::write(royalty_fee_thousand_);
-        royalty_fee_recipient::write(royalty_fee_recipient_);
-        contract_admin::write(contract_admin_);
-        pair_contract_class_hash::write(pair_contract_class_hash_);
+        self.lp_fee_thousand.write(lp_fee_thousand_);
+        self.royalty_fee_thousand.write(royalty_fee_thousand_);
+        self.royalty_fee_recipient.write(royalty_fee_recipient_);
+        self.contract_admin.write(contract_admin_);
+        self.pair_contract_class_hash.write(pair_contract_class_hash_);
     }
 
-    #[external]
-    fn create_pair(
+    fn create_pair(ref self: ContractState, 
         token_a: ContractAddress,
         token_b: ContractAddress,
     ) -> ContractAddress {
@@ -61,36 +61,35 @@ mod InstaSwapFactory {
         uri.serialize(ref output);
         token_m.serialize(ref output);
         token_n.serialize(ref output);
-        lp_fee_thousand::read().serialize(ref output);
-        royalty_fee_thousand::read().serialize(ref output);
-        royalty_fee_recipient::read().serialize(ref output);
-        contract_admin::read().serialize(ref output);
+        self.lp_fee_thousand.read().serialize(ref output);
+        self.royalty_fee_thousand.read().serialize(ref output);
+        self.royalty_fee_recipient.read().serialize(ref output);
+        self.contract_admin.read().serialize(ref output);
         let mut serialized = output.span();
 
 
         let (result_address, result_data) = deploy_syscall(
-            pair_contract_class_hash::read(),
+            self.pair_contract_class_hash.read(),
             salt,
             serialized,
             false,
         ).unwrap_syscall();
 
-        pair::write((token_m, token_n), result_address);
+        self.pair.write((token_m, token_n), result_address);
         // TODO emit Event
 
         // TODO update pair_num
         return result_address;
     }
 
-    #[view]
-    fn get_pair(
+    fn get_pair(self: @ContractState,
         token_a: ContractAddress,
         token_b: ContractAddress,
     ) -> ContractAddress {
         // TODO support interface check make token_m to be ERC20, token_n to be ERC1155
         let mut token_m: ContractAddress = token_a;
         let mut token_n: ContractAddress = token_b;
-        return pair::read((token_m, token_n));
+        return self.pair.read((token_m, token_n));
     }
 
     // #[view]
@@ -98,14 +97,12 @@ mod InstaSwapFactory {
     //     //TODO
     // }
 
-    #[view]
-    fn get_num_of_pairs() {
+    fn get_num_of_pairs(self: @ContractState,) {
         //TODO
     }
 
-    #[view]
-    fn get_pair_contract_class_hash() -> ClassHash {
-        pair_contract_class_hash::read()
+    fn get_pair_contract_class_hash(self: @ContractState) -> ClassHash {
+        self.pair_contract_class_hash.read()
     }
 
 

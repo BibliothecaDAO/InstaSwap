@@ -7,7 +7,7 @@ const IERC1155_RECEIVER_ID: u32 = 0x4e2312e0_u32;
 const ON_ERC1155_RECEIVED_SELECTOR: u32 = 0xf23a6e61_u32;
 const ON_ERC1155_BATCH_RECEIVED_SELECTOR: u32 = 0xbc197c81_u32;
 
-#[abi]
+#[starknet::interface]
 trait IERC1155 {
     // IERC1155
     fn balance_of(account: ContractAddress, id: u256) -> u256;
@@ -28,7 +28,7 @@ trait IERC1155 {
     fn uri(id: u256) -> felt252;
 }
 
-#[abi]
+#[starknet::interface]
 trait IERC1155Receiver {
     fn onERC1155Received(
         operator: ContractAddress,
@@ -99,7 +99,7 @@ mod ERC1155 {
     impl ERC1155 of super::IERC1155 {
         // IERC1155
         fn balance_of(account: ContractAddress, id: u256) -> u256 {
-            _balances::read((id, account))
+            self._balances.read((id, account))
         }
 
         fn balance_of_batch(accounts: Array<ContractAddress>, ids: Array<u256>) -> Array<u256> {
@@ -107,7 +107,7 @@ mod ERC1155 {
         }
 
         fn is_approved_for_all(account: ContractAddress, operator: ContractAddress) -> bool {
-            _operator_approvals::read((account, operator))
+            self._operator_approvals.read((account, operator))
         }
 
         fn set_approval_for_all(operator: ContractAddress, approved: bool) {
@@ -142,7 +142,7 @@ mod ERC1155 {
 
         // IERC1155MetadataURI
         fn uri(id: u256) -> felt252 {
-            _uri::read()
+            self._uri.read()
         }
     }
 
@@ -209,7 +209,7 @@ mod ERC1155 {
 
     fn _set_approval_for_all(owner: ContractAddress, operator: ContractAddress, approved: bool) {
         assert(owner != operator, 'ERC1155: self approval');
-        _operator_approvals::write((owner, operator), approved);
+        self._operator_approvals.write((owner, operator), approved);
         ApprovalForAll(owner, operator, approved);
     }
 
@@ -220,8 +220,8 @@ mod ERC1155 {
         let operator: ContractAddress = get_caller_address();
         assert(!to.is_zero(), 'ERC1155: invalid receiver');
 
-        _balances::write((id, from), _balances::read((id, from)) - amount);
-        _balances::write((id, to), _balances::read((id, to)) + amount);
+        self._balances.write((id, from), self._balances.read((id, from)) - amount);
+        self._balances.write((id, to), self._balances.read((id, to)) + amount);
         TransferSingle(operator, from, to, id, amount);
 
         _do_safe_transfer_acceptance_check(operator, from, to, id, amount, data);
@@ -238,7 +238,7 @@ mod ERC1155 {
 
 
     fn _set_uri(uri: felt252) {
-        _uri::write(uri)
+        self._uri.write(uri)
     }
 
 

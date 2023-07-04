@@ -1,6 +1,6 @@
 // All modules must be present here
 
-mod test;
+mod tests;
 
 mod utils;
 

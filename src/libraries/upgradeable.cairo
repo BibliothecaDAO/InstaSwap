@@ -19,19 +19,19 @@ mod Upgradeable {
     fn AdminChanged(previous_admin: ContractAddress, new_admin: ContractAddress) {}
 
     fn initializer(contract_admin: ContractAddress) {
-        assert(!initialized::read(), 'Contract already initialized');
-        initialized::write(true);
+        self.assert(!initialized.read(), 'Contract already initialized');
+        self.initialized.write(true);
         _set_admin(contract_admin);
     }
 
     fn assert_only_admin() {
         let caller: ContractAddress = get_caller_address();
-        let admin: ContractAddress = admin::read();
+        let admin: ContractAddress = self.admin.read();
         assert(caller == admin, 'Caller is not admin');
     }
 
     fn get_admin() -> ContractAddress {
-        admin::read()
+        self.admin.read()
     }
 
     //
@@ -40,8 +40,8 @@ mod Upgradeable {
 
     fn _set_admin(new_admin: ContractAddress) {
         assert(!new_admin.is_zero(), 'Admin cannot be zero');
-        let old_admin: ContractAddress = admin::read();
-        admin::write(new_admin);
+        let old_admin: ContractAddress = self.admin.read();
+        self.admin.write(new_admin);
         AdminChanged(old_admin, new_admin);
     }
 

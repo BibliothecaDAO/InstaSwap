@@ -1,30 +1,34 @@
 use starknet::ContractAddress;
 use array::ArrayTrait;
 
-#[abi]
-trait IERC20 {
-    fn name() -> felt252;
-    fn symbol() -> felt252;
-    fn decimals() -> u8;
-    fn total_supply() -> u256;
-    fn balance_of(account: ContractAddress) -> u256;
-    fn allowance(owner: ContractAddress, spender: ContractAddress) -> u256;
-    fn transfer(recipient: ContractAddress, amount: u256) -> bool;
-    fn transfer_from(sender: ContractAddress, recipient: ContractAddress, amount: u256) -> bool;
-    fn approve(spender: ContractAddress, amount: u256) -> bool;
+#[starknet::interface]
+trait IERC20<TContractState> {
+    // view functions
+    fn name(self: @TContractState) -> felt252;
+    fn symbol(self: @TContractState) -> felt252;
+    fn decimals(self: @TContractState) -> u8;
+    fn total_supply(self: @TContractState) -> u256;
+    fn balance_of(self: @TContractState, account: ContractAddress) -> u256;
+    fn allowance(self: @TContractState, owner: ContractAddress, spender: ContractAddress) -> u256;
+    // external functions
+    fn transfer(ref self: TContractState, recipient: ContractAddress, amount: u256) -> bool;
+    fn transfer_from(ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256) -> bool;
+    fn approve(ref self: TContractState, spender: ContractAddress, amount: u256) -> bool;
+    fn increase_allowance(ref self: TContractState, spender: ContractAddress, added_value: u256) -> bool;
+    fn decrease_allowance(ref self: TContractState, spender: ContractAddress, subtracted_value: u256) -> bool;
 }
 
-#[abi]
-trait IERC1155 {
+#[starknet::interface]
+trait IERC1155<TContractState> {
     // IERC1155
-    fn balance_of(account: ContractAddress, id: u256) -> u256;
-    fn balance_of_batch(accounts: Array<ContractAddress>, ids: Array<u256>) -> Array<u256>;
-    fn is_approved_for_all(account: ContractAddress, operator: ContractAddress) -> bool;
-    fn set_approval_for_all(operator: ContractAddress, approved: bool);
-    fn safe_transfer_from(
+    fn balance_of(self: @TContractState, account: ContractAddress, id: u256) -> u256;
+    fn balance_of_batch(self: @TContractState, accounts: Array<ContractAddress>, ids: Array<u256>) -> Array<u256>;
+    fn is_approved_for_all(self: @TContractState, account: ContractAddress, operator: ContractAddress) -> bool;
+    fn set_approval_for_all(ref self: TContractState, operator: ContractAddress, approved: bool);
+    fn safe_transfer_from(ref self: TContractState, 
         from: ContractAddress, to: ContractAddress, id: u256, amount: u256, data: Array<felt252>
     );
-    fn safe_batch_transfer_from(
+    fn safe_batch_transfer_from(ref self: TContractState, 
         from: ContractAddress,
         to: ContractAddress,
         ids: Array<u256>,
@@ -32,9 +36,10 @@ trait IERC1155 {
         data: Array<felt252>
     );
     // IERC1155MetadataURI
-    fn uri(id: u256) -> felt252;
+    fn uri(self: @TContractState, id: u256) -> felt252;
 }
-#[contract]
+
+#[starknet::contract]
 mod InstaSwapPair {
     use zeroable::Zeroable;
     use starknet::get_caller_address;
@@ -66,6 +71,7 @@ mod InstaSwapPair {
 
     use instaswap::libraries::library::AMM;
 
+    #[storage]
     struct Storage {
         currency_address: ContractAddress,
         token_address: ContractAddress,
@@ -82,7 +88,7 @@ mod InstaSwapPair {
     //##############
 
     #[constructor]
-    fn constructor(
+    fn constructor(ref self: ContractState, 
         uri: felt252,
         currency_address_: ContractAddress,
         token_address_: ContractAddress,
@@ -92,17 +98,15 @@ mod InstaSwapPair {
         contract_admin: ContractAddress,
     ) {
         Upgradeable::initializer(contract_admin);
-        currency_address::write(currency_address_);
-        token_address::write(token_address_);
-        lp_fee_thousand::write(lp_fee_thousand_);
-        set_royalty_info(royalty_fee_thousand_, royalty_fee_address_);
-    //TODO ERC1155 initializer
-
-    //TODO ERC165 interface register
+        self.currency_address.write(currency_address_);
+        self.token_address.write(token_address_);
+        self.lp_fee_thousand.write(lp_fee_thousand_);
+        set_royalty_info(ref self, royalty_fee_thousand_, royalty_fee_address_);
+        ERC1155::initializer(uri);
     }
 
-    #[external]
-    fn upgrade(impl_hash: ClassHash) {
+    fn upgrade(ref self: ContractState, 
+        impl_hash: ClassHash) {
         Upgradeable::_upgrade(impl_hash);
     }
 
@@ -110,8 +114,7 @@ mod InstaSwapPair {
     // LP #
     //#####
 
-    #[external]
-    fn add_liquidity(
+    fn add_liquidity(ref self: ContractState, 
         mut max_currency_amounts: Array<u256>,
         mut token_ids: Array<u256>,
         mut token_amounts: Array<u256>,
@@ -121,10 +124,10 @@ mod InstaSwapPair {
         assert(max_currency_amounts.len() == token_amounts.len(), 'not same length 2');
         let info = starknet::get_block_info().unbox();
         assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
-        return add_liquidity_loop(max_currency_amounts, token_ids, token_amounts, );
+        return add_liquidity_loop(ref self, max_currency_amounts, token_ids, token_amounts, );
     }
 
-    fn add_liquidity_loop(
+    fn add_liquidity_loop(ref self: ContractState, 
         mut max_currency_amounts: Array<u256>,
         mut token_ids: Array<u256>,
         mut token_amounts: Array<u256>,
@@ -134,10 +137,10 @@ mod InstaSwapPair {
         }
         let caller = starknet::get_caller_address();
         let contract = starknet::get_contract_address();
-        let currency_address_ = currency_address::read();
-        let token_address_ = token_address::read();
+        let currency_address_ = self.currency_address.read();
+        let token_address_ = self.token_address.read();
 
-        let currency_reserve_ = currency_reserves::read(*token_ids.at(0_usize));
+        let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
         let lp_total_supply_ = get_lp_supply(*token_ids.at(0_usize));
         let token_reserve_ = IERC1155Dispatcher {
             contract_address: token_address_
@@ -207,13 +210,13 @@ mod InstaSwapPair {
         }
 
         // update lp_total_supplies
-        lp_total_supplies::write(*token_ids.at(0_usize), lp_total_supply_new_);
+        self.lp_total_supplies.write(*token_ids.at(0_usize), lp_total_supply_new_);
 
         let new_currency_reserve = currency_reserve_ + currency_amount_;
-        currency_reserves::write(*token_ids.at(0_usize), new_currency_reserve);
+        self.currency_reserves.write(*token_ids.at(0_usize), new_currency_reserve);
 
         let new_token_reserve = token_reserve_ + *token_amounts.at(0_usize);
-        token_reserves::write(*token_ids.at(0_usize), new_token_reserve);
+        self.token_reserves.write(*token_ids.at(0_usize), new_token_reserve);
 
         // TODO Emit Event
 
@@ -221,11 +224,10 @@ mod InstaSwapPair {
         token_ids.pop_front();
         token_amounts.pop_front();
 
-        return add_liquidity_loop(max_currency_amounts, token_ids, token_amounts, );
+        return add_liquidity_loop(ref self, max_currency_amounts, token_ids, token_amounts, );
     }
 
-    #[external]
-    fn remove_liquidity(
+    fn remove_liquidity(ref self: ContractState, 
         mut min_currency_amounts: Array<u256>,
         mut token_ids: Array<u256>,
         mut min_token_amounts: Array<u256>,
@@ -237,12 +239,12 @@ mod InstaSwapPair {
         assert(min_currency_amounts.len() == lp_amounts.len(), 'not same length 3');
         let info = starknet::get_block_info().unbox();
         assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
-        return remove_liquidity_loop(
+        return remove_liquidity_loop(ref self, 
             min_currency_amounts, token_ids, min_token_amounts, lp_amounts, 
         );
     }
 
-    fn remove_liquidity_loop(
+    fn remove_liquidity_loop(ref self: ContractState, 
         mut min_currency_amounts: Array<u256>,
         mut token_ids: Array<u256>,
         mut min_token_amounts: Array<u256>,
@@ -254,10 +256,10 @@ mod InstaSwapPair {
         }
         let caller = starknet::get_caller_address();
         let contract = starknet::get_contract_address();
-        let currency_address_ = currency_address::read();
-        let token_address_ = token_address::read();
+        let currency_address_ = self.currency_address.read();
+        let token_address_ = self.token_address.read();
 
-        let currency_reserve_ = currency_reserves::read(*token_ids.at(0_usize));
+        let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
         let lp_total_supply_ = get_lp_supply(*token_ids.at(0_usize));
         let token_reserve_ = IERC1155Dispatcher {
             contract_address: token_address_
@@ -277,13 +279,13 @@ mod InstaSwapPair {
         ERC1155::_burn(caller, *token_ids.at(0_usize), *lp_amounts.at(0_usize));
 
         let new_currency_reserve = currency_reserve_ - currency_amount_;
-        currency_reserves::write(*token_ids.at(0_usize), new_currency_reserve);
+        self.currency_reserves.write(*token_ids.at(0_usize), new_currency_reserve);
 
         let new_token_reserve = token_reserve_ - token_amount_;
-        token_reserves::write(*token_ids.at(0_usize), new_token_reserve);
+        self.token_reserves.write(*token_ids.at(0_usize), new_token_reserve);
 
         let lp_total_supply = lp_total_supply_ - *lp_amounts.at(0_usize);
-        lp_total_supplies::write(*token_ids.at(0_usize), lp_total_supply);
+        self.lp_total_supplies.write(*token_ids.at(0_usize), lp_total_supply);
 
         // Transfer currency to caller
         IERC20Dispatcher { contract_address: currency_address_ }.transfer(caller, currency_amount_);
@@ -308,8 +310,7 @@ mod InstaSwapPair {
     //#############
     // BUY TOKENS #
     //#############
-    #[external]
-    fn buy_tokens(
+    fn buy_tokens(ref self: ContractState, 
         mut max_currency_amounts: Array<u256>,
         mut token_ids: Array<u256>,
         mut token_amounts: Array<u256>,
@@ -320,26 +321,26 @@ mod InstaSwapPair {
         let info = starknet::get_block_info().unbox();
         assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
 
-        let currency_amount = buy_tokens_loop(token_ids, token_amounts, );
+        let currency_amount = buy_tokens_loop(ref self, token_ids, token_amounts, );
         assert(currency_amount <= *max_currency_amounts.at(0_usize), 'amount too high');
 
         return currency_amount;
     }
 
-    fn buy_tokens_loop(mut token_ids: Array<u256>, mut token_amounts: Array<u256>) -> u256 {
+    fn buy_tokens_loop(ref self: ContractState, mut token_ids: Array<u256>, mut token_amounts: Array<u256>) -> u256 {
         
         if (token_ids.len() == 0_usize) {
             return 0.into();
         }
         let caller = starknet::get_caller_address();
         let contract = starknet::get_contract_address();
-        let currency_address_ = currency_address::read();
-        let token_address_ = token_address::read();
+        let currency_address_ = self.currency_address.read();
+        let token_address_ = self.token_address.read();
 
-        let currency_reserve_ = currency_reserves::read(*token_ids.at(0_usize));
-        let token_reserve_ = token_reserves::read(*token_ids.at(0_usize));
+        let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
+        let token_reserve_ = self.token_reserves.read(*token_ids.at(0_usize));
 
-        let lp_fee_thousand_ = lp_fee_thousand::read();
+        let lp_fee_thousand_ = self.lp_fee_thousand.read();
 
         let currency_amount_sans_royal_ = AMM::get_currency_amount_when_buy(
             *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
@@ -351,7 +352,7 @@ mod InstaSwapPair {
 
         // Update reserve 
         let new_currency_reserve = currency_reserve_ + currency_amount_;
-        currency_reserves::write(*token_ids.at(0_usize), new_currency_reserve);
+        self.currency_reserves.write(*token_ids.at(0_usize), new_currency_reserve);
 
         // Transfer currency from caller
         IERC20Dispatcher {
@@ -360,7 +361,7 @@ mod InstaSwapPair {
         // Royalty transfer
         IERC20Dispatcher {
             contract_address: currency_address_
-        }.transfer_from(caller, royalty_fee_address::read(), royalty_);
+        }.transfer_from(caller, self.royalty_fee_address.read(), royalty_);
 
         // Transfer token to caller
         IERC1155Dispatcher {
@@ -383,8 +384,7 @@ mod InstaSwapPair {
     //##############
     // SELL TOKENS #
     //##############
-    #[external]
-    fn sell_tokens(
+    fn sell_tokens(ref self: ContractState, 
         mut min_currency_amounts: Array<u256>,
         mut token_ids: Array<u256>,
         mut token_amounts: Array<u256>,
@@ -395,26 +395,26 @@ mod InstaSwapPair {
         let info = starknet::get_block_info().unbox();
         assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
 
-        let currency_amount = sell_tokens_loop(token_ids, token_amounts, );
+        let currency_amount = sell_tokens_loop(ref self, token_ids, token_amounts, );
         assert(currency_amount >= *min_currency_amounts.at(0_usize), 'amount too low');
 
         return currency_amount;
     }
 
-    fn sell_tokens_loop(mut token_ids: Array<u256>, mut token_amounts: Array<u256>) -> u256 {
+    fn sell_tokens_loop(ref self: ContractState, mut token_ids: Array<u256>, mut token_amounts: Array<u256>) -> u256 {
         
         if (token_ids.len() == 0_usize) {
             return 0.into();
         }
         let caller = starknet::get_caller_address();
         let contract = starknet::get_contract_address();
-        let currency_address_ = currency_address::read();
-        let token_address_ = token_address::read();
+        let currency_address_ = self.currency_address.read();
+        let token_address_ = self.token_address.read();
 
-        let currency_reserve_ = currency_reserves::read(*token_ids.at(0_usize));
-        let token_reserve_ = token_reserves::read(*token_ids.at(0_usize));
+        let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
+        let token_reserve_ = self.token_reserves.read(*token_ids.at(0_usize));
 
-        let lp_fee_thousand_ = lp_fee_thousand::read();
+        let lp_fee_thousand_ = self.lp_fee_thousand.read();
 
         let currency_amount_sans_royal_ = AMM::get_currency_amount_when_sell(
             *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
@@ -426,14 +426,14 @@ mod InstaSwapPair {
 
         // Update reserve
         let new_currency_reserve = currency_reserve_ - currency_amount_;
-        currency_reserves::write(*token_ids.at(0_usize), new_currency_reserve);
+        self.currency_reserves.write(*token_ids.at(0_usize), new_currency_reserve);
 
         // Transfer currency to caller
         IERC20Dispatcher { contract_address: currency_address_ }.transfer(caller, currency_amount_);
         // Royalty transfer
         IERC20Dispatcher {
             contract_address: currency_address_
-        }.transfer(royalty_fee_address::read(), royalty_);
+            }.transfer(royalty_fee_address.read(), royalty_);
 
         // Transfer token from caller
         IERC1155Dispatcher {
@@ -456,9 +456,8 @@ mod InstaSwapPair {
     // PRICING CALCS #
     //################
 
-    #[view]
-    fn get_royalty_with_amount(amount_sans_royalty: u256) -> u256 {
-        let royalty_fee_thousand_ = royalty_fee_thousand::read();
+    fn get_royalty_with_amount(self: @ContractState, amount_sans_royalty: u256) -> u256 {
+        let royalty_fee_thousand_ = self.royalty_fee_thousand.read();
         let royalty = amount_sans_royalty * royalty_fee_thousand_;
 
         let royalty = royalty / 1000.into();
@@ -469,8 +468,7 @@ mod InstaSwapPair {
     // RECEIVERS #
     //############
 
-    #[external]
-    fn onERC1155Received(
+    fn onERC1155Received(ref self: ContractState, 
         operator: ContractAddress,
         from: ContractAddress,
         id: u256,
@@ -480,8 +478,7 @@ mod InstaSwapPair {
         return 0_u32; // TODO: return value
     }
 
-    #[external]
-    fn onERC1155BatchReceived(
+    fn onERC1155BatchReceived(ref self: ContractState, 
         operator: ContractAddress,
         from: ContractAddress,
         ids: Array<u256>,
@@ -495,42 +492,36 @@ mod InstaSwapPair {
     // Getters #
     //##########
 
-    #[view]
-    fn get_currency_address() -> ContractAddress {
-        return currency_address::read();
+    fn get_currency_address(self: @ContractState) -> ContractAddress {
+        return self.currency_address.read();
     }
 
-    #[view]
-    fn get_token_address() -> ContractAddress {
-        return token_address::read();
+    fn get_token_address(self: @ContractState) -> ContractAddress {
+        return self.token_address.read();
     }
 
-    #[view]
-    fn get_currency_reserves(token_id: u256) -> u256 {
-        return currency_reserves::read(token_id);
+    fn get_currency_reserves(self: @ContractState, token_id: u256) -> u256 {
+        return self.currency_reserves.read(token_id);
     }
 
-    #[view]
-    fn get_token_reserves(token_id: u256) -> u256 {
-        return token_reserves::read(token_id);
+    fn get_token_reserves(self: @ContractState, token_id: u256) -> u256 {
+        return self.token_reserves.read(token_id);
     }
 
-    #[view]
-    fn get_lp_fee_thousand() -> u256 {
-        return lp_fee_thousand::read();
+    fn get_lp_fee_thousand(self: @ContractState) -> u256 {
+        return self.lp_fee_thousand.read();
     }
 
-    #[view]
-    fn get_all_currency_amount_when_sell(
+    fn get_all_currency_amount_when_sell(self: @ContractState, 
         token_ids: Array<u256>, token_amounts: Array<u256>, 
     ) -> Array<u256> {
         let mut currency_amounts_ = ArrayTrait::new();
 
-        get_all_currency_amount_when_sell_loop(token_ids, token_amounts, ref currency_amounts_, );
+        get_all_currency_amount_when_sell_loop(self, token_ids, token_amounts, ref currency_amounts_, );
         return currency_amounts_;
     }
 
-    fn get_all_currency_amount_when_sell_loop(
+    fn get_all_currency_amount_when_sell_loop(self: @ContractState, 
         mut token_ids: Array<u256>,
         mut token_amounts: Array<u256>,
         ref currency_amounts_: Array<u256>,
@@ -539,9 +530,9 @@ mod InstaSwapPair {
         if (token_ids.len() == 0_usize) {
             return ();
         }
-        let currency_reserve_ = currency_reserves::read(*token_ids.at(0_usize));
-        let token_reserve_ = token_reserves::read(*token_ids.at(0_usize));
-        let lp_fee_thousand_ = lp_fee_thousand::read();
+        let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
+        let token_reserve_ = self.token_reserves.read(*token_ids.at(0_usize));
+        let lp_fee_thousand_ = self.lp_fee_thousand.read();
         let currency_amount_sans_royal_ = AMM::get_currency_amount_when_sell(
             *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
         );
@@ -553,17 +544,16 @@ mod InstaSwapPair {
         get_all_currency_amount_when_sell_loop(token_ids, token_amounts, ref currency_amounts_, );
     }
 
-    #[view]
-    fn get_all_currency_amount_when_buy(
+    fn get_all_currency_amount_when_buy(self: @ContractState, 
         token_ids: Array<u256>, token_amounts: Array<u256>, 
     ) -> Array<u256> {
         let mut currency_amounts_ = ArrayTrait::new();
 
-        get_all_currency_amount_when_buy_loop(token_ids, token_amounts, ref currency_amounts_, );
+        get_all_currency_amount_when_buy_loop(self, token_ids, token_amounts, ref currency_amounts_, );
         return currency_amounts_;
     }
 
-    fn get_all_currency_amount_when_buy_loop(
+    fn get_all_currency_amount_when_buy_loop(self: @ContractState, 
         mut token_ids: Array<u256>,
         mut token_amounts: Array<u256>,
         ref currency_amounts_: Array<u256>,
@@ -572,9 +562,9 @@ mod InstaSwapPair {
         if (token_ids.len() == 0_usize) {
             return ();
         }
-        let currency_reserve_ = currency_reserves::read(*token_ids.at(0_usize));
-        let token_reserve_ = token_reserves::read(*token_ids.at(0_usize));
-        let lp_fee_thousand_ = lp_fee_thousand::read();
+        let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
+        let token_reserve_ = self.token_reserves.read(*token_ids.at(0_usize));
+        let lp_fee_thousand_ = self.lp_fee_thousand.read();
         let currency_amount_sans_royal_ = AMM::get_currency_amount_when_buy(
             *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
         );
@@ -591,53 +581,44 @@ mod InstaSwapPair {
     // ERC1155 for LP tokens #
     //########################
 
-    #[view]
-    fn supports_interface(interface_id: u32) -> bool {
+    fn supports_interface(self: @ContractState, interface_id: u32) -> bool {
         // ERC165Contract::supports_interface(interface_id)
         return true; // TODO: need implement base on ERC165
     }
 
 
-    #[view]
-    fn balance_of(account: ContractAddress, token_id: u256, ) -> u256 {
+    fn balance_of(self: @ContractState, account: ContractAddress, token_id: u256, ) -> u256 {
         ERC1155::balance_of(account, token_id)
     }
 
-    #[view]
-    fn balance_of_batch(accounts: Array<ContractAddress>, token_ids: Array<u256>, ) -> Array<u256> {
+    fn balance_of_batch(self: @ContractState, accounts: Array<ContractAddress>, token_ids: Array<u256>, ) -> Array<u256> {
         ERC1155::balance_of_batch(accounts, token_ids)
     }
 
-    #[view]
-    fn is_approved_for_all(account: ContractAddress, operator: ContractAddress, ) -> bool {
+    fn is_approved_for_all(self: @ContractState, account: ContractAddress, operator: ContractAddress, ) -> bool {
         ERC1155::is_approved_for_all(account, operator)
     }
 
-    #[view]
-    fn uri(token_id: u256) -> felt252 {
+    fn uri(self: @ContractState, token_id: u256) -> felt252 {
         return ERC1155::uri(token_id);
     }
 
-    #[view]
-    fn owner() -> felt252 {
+    fn owner(self: @ContractState, ) -> felt252 {
         return Upgradeable::get_admin().into();
     }
 
-    #[view]
-    fn get_lp_supply(token_id: u256) -> u256 {
-        return lp_total_supplies::read(token_id);
+    fn get_lp_supply(self: @ContractState, token_id: u256) -> u256 {
+        return self.lp_total_supplies.read(token_id);
     }
 
     //
     // Externals
     //
-    #[external]
-    fn set_approval_for_all(operator: ContractAddress, approved: bool, ) {
+    fn set_approval_for_all(ref self: ContractState, operator: ContractAddress, approved: bool, ) {
         ERC1155::set_approval_for_all(operator, approved, );
     }
 
-    #[external]
-    fn safe_transfer_from(
+    fn safe_transfer_from(ref self: ContractState, 
         from: ContractAddress,
         to: ContractAddress,
         token_id: u256,
@@ -647,8 +628,7 @@ mod InstaSwapPair {
         ERC1155::safe_transfer_from(from, to, token_id, amount, data, );
     }
 
-    #[external]
-    fn safe_batch_transfer_from(
+    fn safe_batch_transfer_from(ref self: ContractState, 
         from: ContractAddress,
         to: ContractAddress,
         token_ids: Array<u256>,
@@ -661,18 +641,16 @@ mod InstaSwapPair {
     //########
     // ADMIN #
     //########
-    #[external]
-    fn set_royalty_info(royalty_fee_thousand_: u256, royalty_fee_address_: ContractAddress, ) {
+    fn set_royalty_info(ref self: ContractState, royalty_fee_thousand_: u256, royalty_fee_address_: ContractAddress, ) {
         assert_only_admin();
 
-        royalty_fee_thousand::write(royalty_fee_thousand_);
-        royalty_fee_address::write(royalty_fee_address_);
+        self.royalty_fee_thousand.write(royalty_fee_thousand_);
+        self.royalty_fee_address.write(royalty_fee_address_);
     }
 
-    #[external]
-    fn set_lp_info(lp_fee_thousand: u256, ) {
+    fn set_lp_info(ref self: ContractState, lp_fee_thousand: u256, ) {
         assert_only_admin();
 
-        lp_fee_thousand::write(lp_fee_thousand);
+        self.lp_fee_thousand.write(lp_fee_thousand);
     }
 }
