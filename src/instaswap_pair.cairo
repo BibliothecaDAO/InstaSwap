@@ -141,7 +141,7 @@ mod InstaSwapPair {
         let token_address_ = self.token_address.read();
 
         let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
-        let lp_total_supply_ = get_lp_supply(*token_ids.at(0_usize));
+        let lp_total_supply_ = get_lp_supply(@self, *token_ids.at(0_usize));
         let token_reserve_ = IERC1155Dispatcher {
             contract_address: token_address_
         }.balance_of(contract, *token_ids.at(0_usize));
@@ -260,7 +260,7 @@ mod InstaSwapPair {
         let token_address_ = self.token_address.read();
 
         let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
-        let lp_total_supply_ = get_lp_supply(*token_ids.at(0_usize));
+        let lp_total_supply_ = get_lp_supply(@self, *token_ids.at(0_usize));
         let token_reserve_ = IERC1155Dispatcher {
             contract_address: token_address_
         }.balance_of(contract, *token_ids.at(0_usize));
@@ -302,7 +302,7 @@ mod InstaSwapPair {
         min_token_amounts.pop_front();
         lp_amounts.pop_front();
 
-        return remove_liquidity_loop(
+        return remove_liquidity_loop(ref self, 
             min_currency_amounts, token_ids, min_token_amounts, lp_amounts, 
         );
     }
@@ -346,7 +346,7 @@ mod InstaSwapPair {
             *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
         );
 
-        let royalty_ = get_royalty_with_amount(currency_amount_sans_royal_, );
+        let royalty_ = get_royalty_with_amount(@self, currency_amount_sans_royal_, );
 
         let currency_amount_ = currency_amount_sans_royal_ + royalty_;
 
@@ -375,7 +375,7 @@ mod InstaSwapPair {
         token_ids.pop_front();
         token_amounts.pop_front();
 
-        let mut currency_total_ = buy_tokens_loop(token_ids, token_amounts);
+        let mut currency_total_ = buy_tokens_loop(ref self, token_ids, token_amounts);
 
         let new_currency_total = currency_total_ + currency_amount_;
         return new_currency_total;
@@ -420,7 +420,7 @@ mod InstaSwapPair {
             *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
         );
 
-        let royalty_ = get_royalty_with_amount(currency_amount_sans_royal_, );
+        let royalty_ = get_royalty_with_amount(@self, currency_amount_sans_royal_, );
 
         let currency_amount_ = currency_amount_sans_royal_ - royalty_;
 
@@ -433,7 +433,7 @@ mod InstaSwapPair {
         // Royalty transfer
         IERC20Dispatcher {
             contract_address: currency_address_
-            }.transfer(royalty_fee_address.read(), royalty_);
+            }.transfer(self.royalty_fee_address.read(), royalty_);
 
         // Transfer token from caller
         IERC1155Dispatcher {
@@ -447,7 +447,7 @@ mod InstaSwapPair {
         token_ids.pop_front();
         token_amounts.pop_front();
 
-        let mut currency_total_ = sell_tokens_loop(token_ids, token_amounts);
+        let mut currency_total_ = sell_tokens_loop(ref self, token_ids, token_amounts);
         let new_currency_total = currency_total_ + currency_amount_;
         return new_currency_total;
     }
@@ -536,12 +536,12 @@ mod InstaSwapPair {
         let currency_amount_sans_royal_ = AMM::get_currency_amount_when_sell(
             *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
         );
-        let royalty_ = get_royalty_with_amount(currency_amount_sans_royal_, );
+        let royalty_ = get_royalty_with_amount(self, currency_amount_sans_royal_, );
         let currency_amount_ = currency_amount_sans_royal_ - royalty_;
         currency_amounts_.append(currency_amount_);
         token_ids.pop_front();
         token_amounts.pop_front();
-        get_all_currency_amount_when_sell_loop(token_ids, token_amounts, ref currency_amounts_, );
+        get_all_currency_amount_when_sell_loop(self, token_ids, token_amounts, ref currency_amounts_, );
     }
 
     fn get_all_currency_amount_when_buy(self: @ContractState, 
@@ -568,13 +568,13 @@ mod InstaSwapPair {
         let currency_amount_sans_royal_ = AMM::get_currency_amount_when_buy(
             *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
         );
-        let royalty_ = get_royalty_with_amount(currency_amount_sans_royal_, );
+        let royalty_ = get_royalty_with_amount(self, currency_amount_sans_royal_, );
 
         let currency_amount_ = currency_amount_sans_royal_ - royalty_;
         currency_amounts_.append(currency_amount_);
         token_ids.pop_front();
         token_amounts.pop_front();
-        get_all_currency_amount_when_buy_loop(token_ids, token_amounts, ref currency_amounts_, );
+        get_all_currency_amount_when_buy_loop(self, token_ids, token_amounts, ref currency_amounts_, );
     }
 
     //########################

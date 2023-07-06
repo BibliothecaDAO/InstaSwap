@@ -8,16 +8,16 @@ const ON_ERC1155_RECEIVED_SELECTOR: u32 = 0xf23a6e61_u32;
 const ON_ERC1155_BATCH_RECEIVED_SELECTOR: u32 = 0xbc197c81_u32;
 
 #[starknet::interface]
-trait IERC1155 {
+trait IERC1155<TContractState> {
     // IERC1155
-    fn balance_of(account: ContractAddress, id: u256) -> u256;
-    fn balance_of_batch(accounts: Array<ContractAddress>, ids: Array<u256>) -> Array<u256>;
-    fn is_approved_for_all(account: ContractAddress, operator: ContractAddress) -> bool;
-    fn set_approval_for_all(operator: ContractAddress, approved: bool);
-    fn safe_transfer_from(
+    fn balance_of(self: @TContractState, account: ContractAddress, id: u256) -> u256;
+    fn balance_of_batch(self: @TContractState, accounts: Array<ContractAddress>, ids: Array<u256>) -> Array<u256>;
+    fn is_approved_for_all(self: @TContractState, account: ContractAddress, operator: ContractAddress) -> bool;
+    fn set_approval_for_all(ref self: TContractState, operator: ContractAddress, approved: bool);
+    fn safe_transfer_from(ref self: TContractState, 
         from: ContractAddress, to: ContractAddress, id: u256, amount: u256, data: Array<felt252>
     );
-    fn safe_batch_transfer_from(
+    fn safe_batch_transfer_from(ref self: TContractState, 
         from: ContractAddress,
         to: ContractAddress,
         ids: Array<u256>,
@@ -25,19 +25,19 @@ trait IERC1155 {
         data: Array<felt252>
     );
     // IERC1155MetadataURI
-    fn uri(id: u256) -> felt252;
+    fn uri(self: @TContractState, id: u256) -> felt252;
 }
 
 #[starknet::interface]
-trait IERC1155Receiver {
-    fn onERC1155Received(
+trait IERC1155Receiver<TContractState> {
+    fn onERC1155Received(ref self: TContractState, 
         operator: ContractAddress,
         from: ContractAddress,
         id: u256,
         value: u256,
         data: Array<felt252>
     ) -> u32;
-    fn onERC1155BatchReceived(
+    fn onERC1155BatchReceived(ref self: TContractState, 
         operator: ContractAddress,
         from: ContractAddress,
         ids: Array<u256>,
@@ -46,7 +46,7 @@ trait IERC1155Receiver {
     ) -> u32;
 }
 
-#[contract]
+#[starknet::contract]
 mod ERC1155 {
     // OZ modules
     // use openzeppelin::account;
@@ -68,6 +68,7 @@ mod ERC1155 {
     use option::OptionTrait;
     use zeroable::Zeroable;
 
+    #[storage]
     struct Storage {
         _balances: LegacyMap<(u256, ContractAddress), u256>,
         _operator_approvals: LegacyMap<(ContractAddress, ContractAddress), bool>,
@@ -75,11 +76,13 @@ mod ERC1155 {
     }
 
     #[event]
+    #[derive(Drop, starknet::Event)]
     fn TransferSingle(
         operator: ContractAddress, from: ContractAddress, to: ContractAddress, id: u256, value: u256
     ) {}
 
     #[event]
+    #[derive(Drop, starknet::Event)]
     fn TransferBatch(
         operator: ContractAddress,
         from: ContractAddress,
@@ -89,43 +92,45 @@ mod ERC1155 {
     ) {}
 
     #[event]
+    #[derive(Drop, starknet::Event)]
     fn ApprovalForAll(account: ContractAddress, operator: ContractAddress, approved: bool) {}
 
     #[constructor]
-    fn constructor(uri: felt252) {
-        initializer(uri);
+    fn constructor(ref self: ContractState, uri: felt252) {
+        initializer(ref self, uri);
     }
 
-    impl ERC1155 of super::IERC1155 {
+    #[external(v0)]
+    impl ERC1155 of super::IERC1155<ContractState> {
         // IERC1155
-        fn balance_of(account: ContractAddress, id: u256) -> u256 {
+        fn balance_of(self: @ContractState, account: ContractAddress, id: u256) -> u256 {
             self._balances.read((id, account))
         }
 
-        fn balance_of_batch(accounts: Array<ContractAddress>, ids: Array<u256>) -> Array<u256> {
-            _balance_of_batch_iter(accounts, ids, ArrayTrait::new())
+        fn balance_of_batch(self: @ContractState, accounts: Array<ContractAddress>, ids: Array<u256>) -> Array<u256> {
+            _balance_of_batch_iter(self, accounts, ids, ArrayTrait::new())
         }
 
-        fn is_approved_for_all(account: ContractAddress, operator: ContractAddress) -> bool {
+        fn is_approved_for_all(self: @ContractState, account: ContractAddress, operator: ContractAddress) -> bool {
             self._operator_approvals.read((account, operator))
         }
 
-        fn set_approval_for_all(operator: ContractAddress, approved: bool) {
-            _set_approval_for_all(get_caller_address(), operator, approved)
+        fn set_approval_for_all(ref self: ContractState, operator: ContractAddress, approved: bool) {
+            _set_approval_for_all(ref self, get_caller_address(), operator, approved)
         }
 
-        fn safe_transfer_from(
+        fn safe_transfer_from(ref self: ContractState, 
             from: ContractAddress, to: ContractAddress, id: u256, amount: u256, data: Array<felt252>
         ) {
             let sender: ContractAddress = get_caller_address();
             assert(
-                from == sender | ERC1155::is_approved_for_all(from, sender),
+                from == sender || ERC1155::is_approved_for_all(@self, from, sender),
                 'ERC1155: unauthorized caller'
             );
-            _safe_transfer_from(from, to, id, amount, data);
+            _safe_transfer_from(ref self, from, to, id, amount, data);
         }
 
-        fn safe_batch_transfer_from(
+        fn safe_batch_transfer_from(ref self: ContractState, 
             from: ContractAddress,
             to: ContractAddress,
             ids: Array<u256>,
@@ -134,14 +139,14 @@ mod ERC1155 {
         ) {
             let sender: ContractAddress = get_caller_address();
             assert(
-                from == sender | ERC1155::is_approved_for_all(from, sender),
+                from == sender || ERC1155::is_approved_for_all(@self, from, sender),
                 'ERC1155: unauthorized caller'
             );
             _safe_batch_transfer_from(from, to, ids, amounts, data);
         }
 
         // IERC1155MetadataURI
-        fn uri(id: u256) -> felt252 {
+        fn uri(self: @ContractState, id: u256) -> felt252 {
             self._uri.read()
         }
     }
@@ -157,64 +162,64 @@ mod ERC1155 {
     }
 
 
-    fn balance_of(account: ContractAddress, id: u256) -> u256 {
-        ERC1155::balance_of(account, id)
-    }
+    // fn balance_of(account: ContractAddress, id: u256) -> u256 {
+    //     ERC1155::balance_of(account, id)
+    // }
 
 
-    fn balance_of_batch(accounts: Array<ContractAddress>, ids: Array<u256>) -> Array<u256> {
-        ERC1155::balance_of_batch(accounts, ids)
-    }
+    // fn balance_of_batch(accounts: Array<ContractAddress>, ids: Array<u256>) -> Array<u256> {
+    //     ERC1155::balance_of_batch(accounts, ids)
+    // }
 
 
-    fn is_approved_for_all(owner: ContractAddress, operator: ContractAddress) -> bool {
-        ERC1155::is_approved_for_all(owner, operator)
-    }
+    // fn is_approved_for_all(owner: ContractAddress, operator: ContractAddress) -> bool {
+    //     ERC1155::is_approved_for_all(owner, operator)
+    // }
 
 
-    fn uri(id: u256) -> felt252 {
-        ERC1155::uri(id)
-    }
+    // fn uri(id: u256) -> felt252 {
+    //     ERC1155::uri(id)
+    // }
 
 
-    fn set_approval_for_all(operator: ContractAddress, approved: bool) {
-        ERC1155::set_approval_for_all(operator, approved)
-    }
+    // fn set_approval_for_all(operator: ContractAddress, approved: bool) {
+    //     ERC1155::set_approval_for_all(operator, approved)
+    // }
 
 
-    fn safe_transfer_from(
-        from: ContractAddress, to: ContractAddress, id: u256, amount: u256, data: Array<felt252>
-    ) {
-        ERC1155::safe_transfer_from(from, to, id, amount, data)
-    }
+    // fn safe_transfer_from(
+    //     from: ContractAddress, to: ContractAddress, id: u256, amount: u256, data: Array<felt252>
+    // ) {
+    //     ERC1155::safe_transfer_from(from, to, id, amount, data)
+    // }
 
 
-    fn safe_batch_transfer_from(
-        from: ContractAddress,
-        to: ContractAddress,
-        ids: Array<u256>,
-        amounts: Array<u256>,
-        data: Array<felt252>
-    ) {
-        ERC1155::safe_batch_transfer_from(from, to, ids, amounts, data)
-    }
+    // fn safe_batch_transfer_from(
+    //     from: ContractAddress,
+    //     to: ContractAddress,
+    //     ids: Array<u256>,
+    //     amounts: Array<u256>,
+    //     data: Array<felt252>
+    // ) {
+    //     ERC1155::safe_batch_transfer_from(from, to, ids, amounts, data)
+    // }
 
 
-    fn initializer(uri: felt252) {
-        _set_uri(uri);
+    fn initializer(ref self: ContractState, uri: felt252) {
+        _set_uri(ref self, uri);
     // erc165::ERC165Contract::register_interface(erc1155::IERC1155_ID);
     // erc165::ERC165Contract::register_interface(erc1155::IERC1155_METADATA_ID);
     }
 
 
-    fn _set_approval_for_all(owner: ContractAddress, operator: ContractAddress, approved: bool) {
+    fn _set_approval_for_all(ref self: ContractState, owner: ContractAddress, operator: ContractAddress, approved: bool) {
         assert(owner != operator, 'ERC1155: self approval');
         self._operator_approvals.write((owner, operator), approved);
         ApprovalForAll(owner, operator, approved);
     }
 
 
-    fn _safe_transfer_from(
+    fn _safe_transfer_from(ref self: ContractState, 
         from: ContractAddress, to: ContractAddress, id: u256, amount: u256, data: Array<felt252>
     ) {
         let operator: ContractAddress = get_caller_address();
@@ -237,7 +242,7 @@ mod ERC1155 {
     ) {}
 
 
-    fn _set_uri(uri: felt252) {
+    fn _set_uri(ref self: ContractState, uri: felt252) {
         self._uri.write(uri)
     }
 
@@ -249,14 +254,14 @@ mod ERC1155 {
     }
 
 
-    fn _balance_of_batch_iter(
+    fn _balance_of_batch_iter(self: @ContractState, 
         mut accounts: Array<ContractAddress>, mut ids: Array<u256>, mut res: Array<u256>
     ) -> Array<u256> {
         match accounts.pop_front() {
             Option::Some(account) => {
                 let id = ids.pop_front().expect('ERC1155 invalid array length');
-                res.append(ERC1155::balance_of(account, id));
-                _balance_of_batch_iter(accounts, ids, res)
+                res.append(ERC1155::balance_of(self, account, id));
+                _balance_of_batch_iter(self, accounts, ids, res)
             },
             Option::None(_) => {
                 assert(ids.is_empty(), 'ERC1155 invalid array length');
