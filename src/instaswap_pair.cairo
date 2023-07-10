@@ -108,7 +108,7 @@ mod InstaSwapPair {
         details: Array<LiquidityRemovedEventObj>,
     }
 
-    #[derive(Drop, starknet::Event)]
+    #[derive(Serde, Drop, starknet::Event)]
     struct LiquidityRemovedEventObj {
         currencyAmount: u256,
         soldTokenNumerator: u256,
@@ -175,7 +175,7 @@ mod InstaSwapPair {
         assert(max_currency_amounts.len() == token_amounts.len(), 'not same length 2');
         let info = starknet::get_block_info().unbox();
         assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
-        return _add_liquidity(ref self, max_currency_amounts, token_ids, token_amounts);
+        _add_liquidity(ref self, max_currency_amounts, token_ids, token_amounts);
     }
 
     fn _add_liquidity(ref self: ContractState, 
@@ -305,72 +305,76 @@ mod InstaSwapPair {
         assert(min_currency_amounts.len() == lp_amounts.len(), 'not same length 3');
         let info = starknet::get_block_info().unbox();
         assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
-        return remove_liquidity_loop(ref self, 
+        _remove_liquidity(ref self, 
             min_currency_amounts, token_ids, min_token_amounts, lp_amounts, 
         );
     }
 
-    fn remove_liquidity_loop(ref self: ContractState, 
+    fn _remove_liquidity(ref self: ContractState, 
         mut min_currency_amounts: Array<u256>,
         mut token_ids: Array<u256>,
         mut min_token_amounts: Array<u256>,
         mut lp_amounts: Array<u256>,
     ) {
+
+        loop {
+            match min_currency_amounts.pop_front() {
+                Option::Some(_) => {
+                    let caller = starknet::get_caller_address();
+                    let contract = starknet::get_contract_address();
+                    let currency_address_ = self.currency_address.read();
+                    let token_address_ = self.token_address.read();
+
+                    let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
+                    let lp_total_supply_ = self.lp_total_supplies.read(*token_ids.at(0_usize));
+                    let token_reserve_ = IERC1155Dispatcher {
+                        contract_address: token_address_
+                    }.balance_of(contract, *token_ids.at(0_usize));
+
+                    assert(lp_total_supply_ > *lp_amounts.at(0_usize), 'insufficient lp supply');
+
+                    let numerator = currency_reserve_ * (*lp_amounts.at(0_usize));
+                    let currency_amount_ = numerator / lp_total_supply_;
+                    assert(currency_amount_ >= *min_currency_amounts.at(0_usize), 'amount too low');
+
+                    let numerator = token_reserve_ * (*lp_amounts.at(0_usize));
+                    let token_amount_ = numerator / lp_total_supply_;
+                    assert(token_amount_ >= *min_token_amounts.at(0_usize), 'amount too low');
+
+                    // Burn LP tokens from caller
+                    ERC1155::_burn(caller, *token_ids.at(0_usize), *lp_amounts.at(0_usize));
+
+                    let new_currency_reserve = currency_reserve_ - currency_amount_;
+                    self.currency_reserves.write(*token_ids.at(0_usize), new_currency_reserve);
+
+                    let new_token_reserve = token_reserve_ - token_amount_;
+                    self.token_reserves.write(*token_ids.at(0_usize), new_token_reserve);
+
+                    let lp_total_supply = lp_total_supply_ - *lp_amounts.at(0_usize);
+                    self.lp_total_supplies.write(*token_ids.at(0_usize), lp_total_supply);
+
+                    // Transfer currency to caller
+                    IERC20Dispatcher { contract_address: currency_address_ }.transfer(caller, currency_amount_);
+                    IERC1155Dispatcher {
+                        contract_address: token_address_
+                    }.safe_transfer_from(
+                        contract, caller, *token_ids.at(0_usize), token_amount_, ArrayTrait::new()
+                    );
+
+                    // TODO Emit Event
+
+                    min_currency_amounts.pop_front();
+                    token_ids.pop_front();
+                    min_token_amounts.pop_front();
+                    lp_amounts.pop_front();
+                },
+                Option::None(_) => {
+                    break ();
+                },
+            };
+        };
         
-        if (min_currency_amounts.len() == 0_usize) {
-            return ();
-        }
-        let caller = starknet::get_caller_address();
-        let contract = starknet::get_contract_address();
-        let currency_address_ = self.currency_address.read();
-        let token_address_ = self.token_address.read();
-
-        let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
-        let lp_total_supply_ = get_lp_supply(@self, *token_ids.at(0_usize));
-        let token_reserve_ = IERC1155Dispatcher {
-            contract_address: token_address_
-        }.balance_of(contract, *token_ids.at(0_usize));
-
-        assert(lp_total_supply_ > *lp_amounts.at(0_usize), 'insufficient lp supply');
-
-        let numerator = currency_reserve_ * (*lp_amounts.at(0_usize));
-        let currency_amount_ = numerator / lp_total_supply_;
-        assert(currency_amount_ >= *min_currency_amounts.at(0_usize), 'amount too low');
-
-        let numerator = token_reserve_ * (*lp_amounts.at(0_usize));
-        let token_amount_ = numerator / lp_total_supply_;
-        assert(token_amount_ >= *min_token_amounts.at(0_usize), 'amount too low');
-
-        // Burn LP tokens from caller
-        ERC1155::_burn(caller, *token_ids.at(0_usize), *lp_amounts.at(0_usize));
-
-        let new_currency_reserve = currency_reserve_ - currency_amount_;
-        self.currency_reserves.write(*token_ids.at(0_usize), new_currency_reserve);
-
-        let new_token_reserve = token_reserve_ - token_amount_;
-        self.token_reserves.write(*token_ids.at(0_usize), new_token_reserve);
-
-        let lp_total_supply = lp_total_supply_ - *lp_amounts.at(0_usize);
-        self.lp_total_supplies.write(*token_ids.at(0_usize), lp_total_supply);
-
-        // Transfer currency to caller
-        IERC20Dispatcher { contract_address: currency_address_ }.transfer(caller, currency_amount_);
-        IERC1155Dispatcher {
-            contract_address: token_address_
-        }.safe_transfer_from(
-            contract, caller, *token_ids.at(0_usize), token_amount_, ArrayTrait::new()
-        );
-
-        // TODO Emit Event
-
-        min_currency_amounts.pop_front();
-        token_ids.pop_front();
-        min_token_amounts.pop_front();
-        lp_amounts.pop_front();
-
-        return remove_liquidity_loop(ref self, 
-            min_currency_amounts, token_ids, min_token_amounts, lp_amounts, 
-        );
+        
     }
 
     //#############
