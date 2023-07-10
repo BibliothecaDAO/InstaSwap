@@ -83,6 +83,57 @@ mod InstaSwapPair {
         lp_total_supplies: LegacyMap::<u256, u256>,
     }
 
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    enum Event {
+        LiquidityAdded: LiquidityAdded,
+        LiquidityRemoved: LiquidityRemoved,
+        TokensPurchase: TokensPurchase,
+        CurrencyPurchase: CurrencyPurchase,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct LiquidityAdded {
+        provider: ContractAddress,
+        tokenIds: Array<u256>,
+        tokenAmounts: Array<u256>,
+        currencyAmounts: Array<u256>,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct LiquidityRemoved {
+        provider: ContractAddress,
+        tokenIds: Array<u256>,
+        tokenAmounts: Array<u256>,
+        details: Array<LiquidityRemovedEventObj>,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct LiquidityRemovedEventObj {
+        currencyAmount: u256,
+        soldTokenNumerator: u256,
+        boughtCurrencyNumerator: u256,
+        totalSupply: u256,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct TokensPurchase {
+        buyer: ContractAddress,
+        recipient: ContractAddress,
+        tokenBoughtIds: Array<u256>,
+        tokenBoughtAmounts: Array<u256>,
+        currencySoldAmounts: Array<u256>,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct CurrencyPurchase {
+        buyer: ContractAddress,
+        recipient: ContractAddress,
+        tokenSoldIds: Array<u256>,
+        tokenSoldAmounts: Array<u256>,
+        currencyBoughtAmounts: Array<u256>,
+    }
+
     //##############
     // CONSTRUCTOR #
     //##############
@@ -124,107 +175,122 @@ mod InstaSwapPair {
         assert(max_currency_amounts.len() == token_amounts.len(), 'not same length 2');
         let info = starknet::get_block_info().unbox();
         assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
-        return add_liquidity_loop(ref self, max_currency_amounts, token_ids, token_amounts, );
+        return _add_liquidity(ref self, max_currency_amounts, token_ids, token_amounts);
     }
 
-    fn add_liquidity_loop(ref self: ContractState, 
+    fn _add_liquidity(ref self: ContractState, 
         mut max_currency_amounts: Array<u256>,
         mut token_ids: Array<u256>,
         mut token_amounts: Array<u256>,
     ) {
-        if (max_currency_amounts.len() == 0_usize) {
-            return ();
-        }
-        let caller = starknet::get_caller_address();
-        let contract = starknet::get_contract_address();
-        let currency_address_ = self.currency_address.read();
-        let token_address_ = self.token_address.read();
+        let eventTokenIds: Array<u256> = token_ids.clone();
+        let eventTokenAmounts: Array<u256> = token_amounts.clone();
+        let mut eventCurrencyAmounts: Array<u256> = ArrayTrait::new();
+        loop {
+            match max_currency_amounts.pop_front() {
+                Option::Some(_) => {
+                    let caller = starknet::get_caller_address();
+                    let contract = starknet::get_contract_address();
+                    let currency_address_ = self.currency_address.read();
+                    let token_address_ = self.token_address.read();
 
-        let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
-        let lp_total_supply_ = get_lp_supply(@self, *token_ids.at(0_usize));
-        let token_reserve_ = IERC1155Dispatcher {
-            contract_address: token_address_
-        }.balance_of(contract, *token_ids.at(0_usize));
+                    let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
+                    let lp_total_supply_ = self.lp_total_supplies.read(*token_ids.at(0_usize));
+                    let token_reserve_ = IERC1155Dispatcher {
+                        contract_address: token_address_
+                    }.balance_of(contract, *token_ids.at(0_usize));
 
-        let mut lp_total_supply_new_ = 0.into();
+                    let mut lp_total_supply_new_ = 0.into();
 
-        let mut currency_amount_ = 0.into();
-        if (lp_total_supply_ == 0.into()) {
-            currency_amount_ = *max_currency_amounts.at(0_usize);
+                    let mut currency_amount_ = 0.into();
+                    if (lp_total_supply_ == 0.into()) {
+                        currency_amount_ = *max_currency_amounts.at(0_usize);
 
-            let square = (*max_currency_amounts.at(0_usize)) * (*token_amounts.at(0_usize));
-            let lp_total_supply_new_felt: felt252 = u256_sqrt(square).into();
-            let lp_total_supply_new_ = lp_total_supply_new_felt.into();
-            let lp_amount_for_lp_ = lp_total_supply_new_ - 1000.into();
-            IERC20Dispatcher {
-                contract_address: currency_address_
-            }.transfer_from(caller, contract, currency_amount_);
+                        let square = (*max_currency_amounts.at(0_usize)) * (*token_amounts.at(0_usize));
+                        let lp_total_supply_new_felt: felt252 = u256_sqrt(square).into();
+                        let lp_total_supply_new_ = lp_total_supply_new_felt.into();
+                        let lp_amount_for_lp_ = lp_total_supply_new_ - 1000.into();
+                        IERC20Dispatcher {
+                            contract_address: currency_address_
+                        }.transfer_from(caller, contract, currency_amount_);
 
-            IERC1155Dispatcher {
-                contract_address: token_address_
-            }.safe_transfer_from(
-                caller,
-                contract,
-                *token_ids.at(0_usize),
-                *token_amounts.at(0_usize),
-                ArrayTrait::new()
-            );
+                        IERC1155Dispatcher {
+                            contract_address: token_address_
+                        }.safe_transfer_from(
+                            caller,
+                            contract,
+                            *token_ids.at(0_usize),
+                            *token_amounts.at(0_usize),
+                            ArrayTrait::new()
+                        );
 
-            ERC1155::_mint(caller, *token_ids.at(0_usize), lp_amount_for_lp_, ArrayTrait::new());
+                        ERC1155::_mint(caller, *token_ids.at(0_usize), lp_amount_for_lp_, ArrayTrait::new());
 
-            // permanently lock the first MINIMUM_LIQUIDITY tokens
-            ERC1155::_mint(
-                contract_address_const::<0>(),
-                *token_ids.at(0_usize),
-                1000.into(),
-                ArrayTrait::new()
-            );
-        } else {
-            // Required price calc
-            // X/Y = dx/dy
-            // dx = X*dy/Y
-            let numerator = currency_reserve_ * (*token_amounts.at(0_usize));
-            let currency_amount_ = numerator / token_reserve_; 
-            assert(currency_amount_ <= *max_currency_amounts.at(0_usize), 'amount too high');
+                        // permanently lock the first MINIMUM_LIQUIDITY tokens
+                        ERC1155::_mint(
+                            contract_address_const::<0>(),
+                            *token_ids.at(0_usize),
+                            1000.into(),
+                            ArrayTrait::new()
+                        );
+                    } else {
+                        // Required price calc
+                        // X/Y = dx/dy
+                        // dx = X*dy/Y
+                        let numerator = currency_reserve_ * (*token_amounts.at(0_usize));
+                        let currency_amount_ = numerator / token_reserve_; 
+                        assert(currency_amount_ <= *max_currency_amounts.at(0_usize), 'amount too high');
 
-            // Transfer currency to contract
-            IERC20Dispatcher {
-                contract_address: currency_address_
-            }.transfer_from(caller, contract, currency_amount_);
+                        // Transfer currency to contract
+                        IERC20Dispatcher {
+                            contract_address: currency_address_
+                        }.transfer_from(caller, contract, currency_amount_);
+                        // append to eventCurrencyAmounts for emit event
+                        eventCurrencyAmounts.append(currency_amount_);
 
-            IERC1155Dispatcher {
-                contract_address: token_address_
-            }.safe_transfer_from(
-                caller,
-                contract,
-                *token_ids.at(0_usize),
-                *token_amounts.at(0_usize),
-                ArrayTrait::new()
-            );
+                        IERC1155Dispatcher {
+                            contract_address: token_address_
+                        }.safe_transfer_from(
+                            caller,
+                            contract,
+                            *token_ids.at(0_usize),
+                            *token_amounts.at(0_usize),
+                            ArrayTrait::new()
+                        );
 
-            let lp_amount_ = lp_total_supply_ * currency_amount_ / currency_reserve_;
-            let lp_total_supply_new_ = lp_total_supply_ + lp_amount_;
+                        let lp_amount_ = lp_total_supply_ * currency_amount_ / currency_reserve_;
+                        let lp_total_supply_new_ = lp_total_supply_ + lp_amount_;
 
-            // Mint LP tokens to caller
-            ERC1155::_mint(caller, *token_ids.at(0_usize), lp_amount_, ArrayTrait::new());
-        }
+                        // Mint LP tokens to caller
+                        ERC1155::_mint(caller, *token_ids.at(0_usize), lp_amount_, ArrayTrait::new());
+                    }
 
-        // update lp_total_supplies
-        self.lp_total_supplies.write(*token_ids.at(0_usize), lp_total_supply_new_);
+                    // update lp_total_supplies
+                    self.lp_total_supplies.write(*token_ids.at(0_usize), lp_total_supply_new_);
 
-        let new_currency_reserve = currency_reserve_ + currency_amount_;
-        self.currency_reserves.write(*token_ids.at(0_usize), new_currency_reserve);
+                    let new_currency_reserve = currency_reserve_ + currency_amount_;
+                    self.currency_reserves.write(*token_ids.at(0_usize), new_currency_reserve);
 
-        let new_token_reserve = token_reserve_ + *token_amounts.at(0_usize);
-        self.token_reserves.write(*token_ids.at(0_usize), new_token_reserve);
+                    let new_token_reserve = token_reserve_ + *token_amounts.at(0_usize);
+                    self.token_reserves.write(*token_ids.at(0_usize), new_token_reserve);
 
-        // TODO Emit Event
+                    self.emit(LiquidityAdded {
+                        provider: caller,
+                        tokenIds: eventTokenIds.clone(),
+                        tokenAmounts: eventTokenAmounts.clone(),
+                        currencyAmounts: eventCurrencyAmounts.clone(),
+                    });
+                    max_currency_amounts.pop_front();
+                    token_ids.pop_front();
+                    token_amounts.pop_front();
+                },
+                Option::None(_) => {
+                    break ();
+                },
+            };
+        };
+        return ;
 
-        max_currency_amounts.pop_front();
-        token_ids.pop_front();
-        token_amounts.pop_front();
-
-        return add_liquidity_loop(ref self, max_currency_amounts, token_ids, token_amounts, );
     }
 
     fn remove_liquidity(ref self: ContractState, 
@@ -603,7 +669,7 @@ mod InstaSwapPair {
         return ERC1155::uri(token_id);
     }
 
-    fn owner(self: @ContractState, ) -> felt252 {
+    fn owner(self: @ContractState) -> felt252 {
         return Upgradeable::get_admin().into();
     }
 
