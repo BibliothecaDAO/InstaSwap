@@ -377,6 +377,71 @@ mod InstaSwapPair {
         
     }
 
+    fn _to_rounded_liquidity(self: @ContractState, 
+        _token_id: u256,
+        _amount_pool: u256,
+        _token_reserve: u256,
+        _currency_reserve: u256,
+        _total_liquidity: u256,
+    ) -> (
+        u256,
+        u256,
+        u256,
+        u256,
+        u256,
+    ) {
+        let mut currency_numerator: u256 = _amount_pool * _currency_reserve;
+        let mut token_numerator: u256 = _amount_pool * _token_reserve;
+
+        // Convert all tokenProduct rest to currency
+        let sold_token_numerator = token_numerator % _total_liquidity;
+
+        if sold_token_numerator != 0 {
+            // The trade happens "after" funds are out of the pool
+            // so we need to remove these funds before computing the rate
+            let virtual_token_reserve =
+                (_token_reserve - (token_numerator / _total_liquidity)) * _total_liquidity;
+            let virtual_currency_reserve =
+                (_currency_reserve - (currency_numerator / _total_liquidity)) * _total_liquidity;
+
+            // Skip process if any of the two reserves is left empty
+            // this step is important to avoid an error withdrawing all left liquidity
+            if virtual_currency_reserve != 0 && virtual_token_reserve != 0 {
+                let mut bought_currency_numerator = AMM::get_currency_amount_when_sell(
+                    sold_token_numerator,
+                    virtual_currency_reserve,
+                    virtual_token_reserve,
+                    self.lp_fee_thousand.read(),
+                );
+                let mut royalty_numerator = get_royalty_with_amount(self, bought_currency_numerator);
+                bought_currency_numerator -= royalty_numerator;
+
+                currency_numerator += bought_currency_numerator;
+
+                // Add royalty numerator (needs to be converted to ROYALTIES_DENOMINATOR)
+                royalty_numerator =
+                    royalty_numerator * 1000 / _total_liquidity;
+
+                return (
+                    currency_numerator / _total_liquidity,
+                    token_numerator / _total_liquidity,
+                    sold_token_numerator,
+                    bought_currency_numerator,
+                    royalty_numerator,
+                );
+            }
+        }
+
+        // Calculate amounts
+        (
+            currency_numerator / _total_liquidity,
+            token_numerator / _total_liquidity,
+            0,
+            0,
+            0,
+        )
+    }
+
     //#############
     // BUY TOKENS #
     //#############
