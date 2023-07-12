@@ -233,6 +233,7 @@ mod InstaSwapPair {
                             1000.into(),
                             ArrayTrait::new()
                         );
+                        eventCurrencyAmounts.append(currency_amount_);
                     } else {
                         // Required price calc
                         // X/Y = dx/dy
@@ -263,6 +264,7 @@ mod InstaSwapPair {
 
                         // Mint LP tokens to caller
                         ERC1155::_mint(caller, *token_ids.at(0_usize), lp_amount_, ArrayTrait::new());
+                        eventCurrencyAmounts.append(currency_amount_);
                     }
 
                     // update lp_total_supplies
@@ -274,12 +276,7 @@ mod InstaSwapPair {
                     let new_token_reserve = token_reserve_ + *token_amounts.at(0_usize);
                     self.token_reserves.write(*token_ids.at(0_usize), new_token_reserve);
 
-                    self.emit(LiquidityAdded {
-                        provider: caller,
-                        tokenIds: eventTokenIds.clone(),
-                        tokenAmounts: eventTokenAmounts.clone(),
-                        currencyAmounts: eventCurrencyAmounts.clone(),
-                    });
+
                     max_currency_amounts.pop_front();
                     token_ids.pop_front();
                     token_amounts.pop_front();
@@ -289,6 +286,12 @@ mod InstaSwapPair {
                 },
             };
         };
+        self.emit(LiquidityAdded {
+            provider: starknet::get_caller_address(),
+            tokenIds: eventTokenIds,
+            tokenAmounts: eventTokenAmounts,
+            currencyAmounts: eventCurrencyAmounts,
+        });
         return ;
 
     }
@@ -316,7 +319,9 @@ mod InstaSwapPair {
         mut min_token_amounts: Array<u256>,
         mut lp_amounts: Array<u256>,
     ) {
-
+        let eventTokenIds: Array<u256> = token_ids.clone();
+        let mut eventTokenAmounts: Array<u256> = ArrayTrait::new();
+        let mut eventObjs: Array<LiquidityRemovedEventObj> = ArrayTrait::new();
         loop {
             match min_currency_amounts.pop_front() {
                 Option::Some(_) => {
@@ -333,13 +338,23 @@ mod InstaSwapPair {
 
                     assert(lp_total_supply_ > *lp_amounts.at(0_usize), 'insufficient lp supply');
 
-                    let numerator = currency_reserve_ * (*lp_amounts.at(0_usize));
-                    let currency_amount_ = numerator / lp_total_supply_;
-                    assert(currency_amount_ >= *min_currency_amounts.at(0_usize), 'amount too low');
+                    // using _to_rounded_liquidity()
+                    let (currency_amount_, token_amount_, sold_token_numerator, bought_currency_numerator, royalty_numerator) = _to_rounded_liquidity(ref self, 
+                        *token_ids.at(0_usize),
+                        *lp_amounts.at(0_usize),
+                        token_reserve_,
+                        currency_reserve_,
+                        lp_total_supply_,
+                    );
 
-                    let numerator = token_reserve_ * (*lp_amounts.at(0_usize));
-                    let token_amount_ = numerator / lp_total_supply_;
-                    assert(token_amount_ >= *min_token_amounts.at(0_usize), 'amount too low');
+                    let eventObj = LiquidityRemovedEventObj {
+                        currencyAmount: currency_amount_,
+                        soldTokenNumerator: sold_token_numerator,
+                        boughtCurrencyNumerator: bought_currency_numerator,
+                        totalSupply: lp_total_supply_,
+                    };
+                    eventObjs.append(eventObj);
+                    eventTokenAmounts.append(token_amount_);
 
                     // Burn LP tokens from caller
                     ERC1155::_burn(caller, *token_ids.at(0_usize), *lp_amounts.at(0_usize));
@@ -361,8 +376,6 @@ mod InstaSwapPair {
                         contract, caller, *token_ids.at(0_usize), token_amount_, ArrayTrait::new()
                     );
 
-                    // TODO Emit Event
-
                     min_currency_amounts.pop_front();
                     token_ids.pop_front();
                     min_token_amounts.pop_front();
@@ -374,10 +387,16 @@ mod InstaSwapPair {
             };
         };
         
+        self.emit(LiquidityRemoved {
+            provider: starknet::get_caller_address(),
+            tokenIds: eventTokenIds,
+            tokenAmounts: eventTokenAmounts,
+            details: eventObjs,
+        });
         
     }
 
-    fn _to_rounded_liquidity(self: @ContractState, 
+    fn _to_rounded_liquidity(ref self: ContractState, 
         _token_id: u256,
         _amount_pool: u256,
         _token_reserve: u256,
