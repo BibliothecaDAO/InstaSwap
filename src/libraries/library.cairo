@@ -20,9 +20,8 @@ impl AMMImpl of AMM {
         let fee_multiplier_ = 1000.into() - lp_fee_thousand;
         let numerator = currency_reserve * token_amount * 1000.into();
         let denominator1 = token_reserve - token_amount;
-        let intermediate = numerator / denominator1 + 1.into();
-        let result = intermediate / fee_multiplier_ + 1.into();
-        
+        let intermediate = denominator1 * fee_multiplier_;
+        let result = numerator / intermediate + 1.into();
         return result;
     }
 
