@@ -89,7 +89,7 @@ mod InstaSwapPair {
         LiquidityAdded: LiquidityAdded,
         LiquidityRemoved: LiquidityRemoved,
         TokensPurchase: TokensPurchase,
-        CurrencyPurchase: CurrencyPurchase,
+        TokensSell: TokensSell,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -119,16 +119,14 @@ mod InstaSwapPair {
     #[derive(Drop, starknet::Event)]
     struct TokensPurchase {
         buyer: ContractAddress,
-        recipient: ContractAddress,
         tokenBoughtIds: Array<u256>,
         tokenBoughtAmounts: Array<u256>,
         currencySoldAmounts: Array<u256>,
     }
 
     #[derive(Drop, starknet::Event)]
-    struct CurrencyPurchase {
-        buyer: ContractAddress,
-        recipient: ContractAddress,
+    struct TokensSell {
+        seller: ContractAddress,
         tokenSoldIds: Array<u256>,
         tokenSoldAmounts: Array<u256>,
         currencyBoughtAmounts: Array<u256>,
@@ -188,7 +186,7 @@ mod InstaSwapPair {
         let mut eventCurrencyAmounts: Array<u256> = ArrayTrait::new();
         loop {
             match max_currency_amounts.pop_front() {
-                Option::Some(_) => {
+                Option::Some(max_currency_amount) => {
                     let caller = starknet::get_caller_address();
                     let contract = starknet::get_contract_address();
                     let currency_address_ = self.currency_address.read();
@@ -240,7 +238,7 @@ mod InstaSwapPair {
                         // dx = X*dy/Y
                         let numerator = currency_reserve_ * (*token_amounts.at(0_usize));
                         let currency_amount_ = numerator / token_reserve_; 
-                        assert(currency_amount_ <= *max_currency_amounts.at(0_usize), 'amount too high');
+                        assert(currency_amount_ <= max_currency_amount, 'amount too high');
 
                         // Transfer currency to contract
                         IERC20Dispatcher {
@@ -277,7 +275,6 @@ mod InstaSwapPair {
                     self.token_reserves.write(*token_ids.at(0_usize), new_token_reserve);
 
 
-                    max_currency_amounts.pop_front();
                     token_ids.pop_front();
                     token_amounts.pop_front();
                 },
@@ -324,7 +321,7 @@ mod InstaSwapPair {
         let mut eventObjs: Array<LiquidityRemovedEventObj> = ArrayTrait::new();
         loop {
             match min_currency_amounts.pop_front() {
-                Option::Some(_) => {
+                Option::Some(min_currency_amount) => {
                     let caller = starknet::get_caller_address();
                     let contract = starknet::get_contract_address();
                     let currency_address_ = self.currency_address.read();
@@ -346,6 +343,7 @@ mod InstaSwapPair {
                         currency_reserve_,
                         lp_total_supply_,
                     );
+                    assert(currency_amount_ >= min_currency_amount, 'insufficient currency amount');
 
                     let eventObj = LiquidityRemovedEventObj {
                         currencyAmount: currency_amount_,
@@ -376,7 +374,6 @@ mod InstaSwapPair {
                         contract, caller, *token_ids.at(0_usize), token_amount_, ArrayTrait::new()
                     );
 
-                    min_currency_amounts.pop_front();
                     token_ids.pop_front();
                     min_token_amounts.pop_front();
                     lp_amounts.pop_front();
@@ -469,70 +466,79 @@ mod InstaSwapPair {
         mut token_ids: Array<u256>,
         mut token_amounts: Array<u256>,
         deadline: felt252,
-    ) -> u256 {
+    ) -> Array<u256> {
         assert(max_currency_amounts.len() == token_ids.len(), 'not same length 1');
         assert(max_currency_amounts.len() == token_amounts.len(), 'not same length 2');
         let info = starknet::get_block_info().unbox();
         assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
 
-        let currency_amount = buy_tokens_loop(ref self, token_ids, token_amounts, );
-        assert(currency_amount <= *max_currency_amounts.at(0_usize), 'amount too high');
-
-        return currency_amount;
+        let currency_amounts = _buy_tokens(ref self, max_currency_amounts, token_ids, token_amounts);
+        return currency_amounts;
     }
 
-    fn buy_tokens_loop(ref self: ContractState, mut token_ids: Array<u256>, mut token_amounts: Array<u256>) -> u256 {
+    fn _buy_tokens(ref self: ContractState, mut max_currency_amounts: Array<u256>, mut token_ids: Array<u256>, mut token_amounts: Array<u256>) -> Array<u256> {
+        let eventTokenIds: Array<u256> = token_ids.clone();
+        let eventTokenAmounts: Array<u256> = token_amounts.clone();
+        let mut currencyAmounts: Array<u256> = ArrayTrait::new();
+        loop {
+            match max_currency_amounts.pop_front() {
+                Option::Some(max_currency_amount) => {
+                    let caller = starknet::get_caller_address();
+                    let contract = starknet::get_contract_address();
+                    let currency_address_ = self.currency_address.read();
+                    let token_address_ = self.token_address.read();
+
+                    let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
+                    let token_reserve_ = self.token_reserves.read(*token_ids.at(0_usize));
+
+                    let lp_fee_thousand_ = self.lp_fee_thousand.read();
+
+                    let currency_amount_sans_royal_ = AMM::get_currency_amount_when_buy(
+                        *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
+                    );
+
+                    let royalty_ = get_royalty_with_amount(self.royalty_fee_thousand.read(), currency_amount_sans_royal_);
+
+                    let currency_amount_ = currency_amount_sans_royal_ + royalty_;
+
+                    // Update reserve 
+                    let new_currency_reserve = currency_reserve_ + currency_amount_;
+                    self.currency_reserves.write(*token_ids.at(0_usize), new_currency_reserve);
+
+                    // Transfer currency from caller
+                    IERC20Dispatcher {
+                        contract_address: currency_address_
+                    }.transfer_from(caller, contract, currency_amount_);
+                    // Royalty transfer
+                    IERC20Dispatcher {
+                        contract_address: currency_address_
+                    }.transfer_from(caller, self.royalty_fee_address.read(), royalty_);
+
+                    // Transfer token to caller
+                    IERC1155Dispatcher {
+                        contract_address: token_address_
+                    }.safe_transfer_from(
+                        contract, caller, *token_ids.at(0_usize), *token_amounts.at(0_usize), ArrayTrait::new()
+                    );
+                    currencyAmounts.append(currency_amount_);
+
+                    token_ids.pop_front();
+                    token_amounts.pop_front();
+                },
+                Option::None(_) => {
+                    break ();
+                },
+            };
+        };
+        // Emit event
+        self.emit(TokensPurchase {
+            buyer: starknet::get_caller_address(),
+            tokenBoughtIds: eventTokenIds,
+            tokenBoughtAmounts: eventTokenAmounts,
+            currencySoldAmounts: currencyAmounts.clone(),
+        });
+        return currencyAmounts;
         
-        if (token_ids.len() == 0_usize) {
-            return 0.into();
-        }
-        let caller = starknet::get_caller_address();
-        let contract = starknet::get_contract_address();
-        let currency_address_ = self.currency_address.read();
-        let token_address_ = self.token_address.read();
-
-        let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
-        let token_reserve_ = self.token_reserves.read(*token_ids.at(0_usize));
-
-        let lp_fee_thousand_ = self.lp_fee_thousand.read();
-
-        let currency_amount_sans_royal_ = AMM::get_currency_amount_when_buy(
-            *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
-        );
-
-        let royalty_ = get_royalty_with_amount(@self, currency_amount_sans_royal_, );
-
-        let currency_amount_ = currency_amount_sans_royal_ + royalty_;
-
-        // Update reserve 
-        let new_currency_reserve = currency_reserve_ + currency_amount_;
-        self.currency_reserves.write(*token_ids.at(0_usize), new_currency_reserve);
-
-        // Transfer currency from caller
-        IERC20Dispatcher {
-            contract_address: currency_address_
-        }.transfer_from(caller, contract, currency_amount_);
-        // Royalty transfer
-        IERC20Dispatcher {
-            contract_address: currency_address_
-        }.transfer_from(caller, self.royalty_fee_address.read(), royalty_);
-
-        // Transfer token to caller
-        IERC1155Dispatcher {
-            contract_address: token_address_
-        }.safe_transfer_from(
-            contract, caller, *token_ids.at(0_usize), *token_amounts.at(0_usize), ArrayTrait::new()
-        );
-
-        // TODO Emit Event
-
-        token_ids.pop_front();
-        token_amounts.pop_front();
-
-        let mut currency_total_ = buy_tokens_loop(ref self, token_ids, token_amounts);
-
-        let new_currency_total = currency_total_ + currency_amount_;
-        return new_currency_total;
     }
 
     //##############
@@ -574,7 +580,7 @@ mod InstaSwapPair {
             *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
         );
 
-        let royalty_ = get_royalty_with_amount(@self, currency_amount_sans_royal_, );
+        let royalty_ = get_royalty_with_amount(self.royalty_fee_thousand.read(), currency_amount_sans_royal_);
 
         let currency_amount_ = currency_amount_sans_royal_ - royalty_;
 
@@ -610,9 +616,8 @@ mod InstaSwapPair {
     // PRICING CALCS #
     //################
 
-    fn get_royalty_with_amount(self: @ContractState, amount_sans_royalty: u256) -> u256 {
-        let royalty_fee_thousand_ = self.royalty_fee_thousand.read();
-        let royalty = amount_sans_royalty * royalty_fee_thousand_;
+    fn get_royalty_with_amount(royalty_fee_thousand: u256, amount_sans_royalty: u256) -> u256 {
+        let royalty = amount_sans_royalty * royalty_fee_thousand;
 
         let royalty = royalty / 1000.into();
         return royalty;
