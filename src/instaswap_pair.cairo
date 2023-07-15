@@ -89,16 +89,18 @@ mod InstaSwapPair {
     use instaswap::libraries::upgradeable::Upgradeable;
     use starknet::class_hash::ClassHash;
     use instaswap::libraries::upgradeable::Upgradeable::assert_only_admin;
-    use array::{ SpanSerde, ArrayTrait };
+    use array::{SpanSerde, ArrayTrait};
     use rules_erc1155::erc1155::erc1155;
     use rules_erc1155::erc1155::erc1155::ERC1155;
-    use rules_erc1155::erc1155::erc1155::ERC1155::{ HelperTrait as ERC1155HelperTrait };
+    use rules_erc1155::erc1155::erc1155::ERC1155::{HelperTrait as ERC1155HelperTrait};
     use rules_erc1155::erc1155::interface::IERC1155;
-    use rules_erc1155::introspection::erc165::{ IERC165 as rules_erc1155_IERC165 };
+    use rules_erc1155::introspection::erc165::{IERC165 as rules_erc1155_IERC165};
 
     use kass::access::ownable;
-    use kass::access::ownable::{ Ownable, IOwnable };
-    use kass::access::ownable::Ownable::{ HelperTrait as OwnableHelperTrait, ModifierTrait as OwnableModifierTrait };
+    use kass::access::ownable::{Ownable, IOwnable};
+    use kass::access::ownable::Ownable::{
+        HelperTrait as OwnableHelperTrait, ModifierTrait as OwnableModifierTrait
+    };
 
     use instaswap::libraries::library::AMM;
 
@@ -259,17 +261,22 @@ mod InstaSwapPair {
                                 *token_amounts.at(0_usize),
                                 ArrayTrait::new().span()
                             );
-                        erc1155_self._mint(
-                            caller, *token_ids.at(0_usize), lp_amount_for_lp_, ArrayTrait::new().span()
-                        );
+                        erc1155_self
+                            ._mint(
+                                caller,
+                                *token_ids.at(0_usize),
+                                lp_amount_for_lp_,
+                                ArrayTrait::new().span()
+                            );
 
                         // permanently lock the first MINIMUM_LIQUIDITY tokens
-                        erc1155_self._mint(
-                            contract_address_const::<0>(),
-                            *token_ids.at(0_usize),
-                            1000.into(),
-                            ArrayTrait::new().span()
-                        );
+                        erc1155_self
+                            ._mint(
+                                contract_address_const::<0>(),
+                                *token_ids.at(0_usize),
+                                1000.into(),
+                                ArrayTrait::new().span()
+                            );
                         eventCurrencyAmounts.append(currency_amount_);
                     } else {
                         // Required price calc
@@ -301,9 +308,10 @@ mod InstaSwapPair {
                         let lp_total_supply_new_ = lp_total_supply_ + lp_amount_;
 
                         // Mint LP tokens to caller
-                        erc1155_self._mint(
-                            caller, *token_ids.at(0_usize), lp_amount_, ArrayTrait::new().span()
-                        );
+                        erc1155_self
+                            ._mint(
+                                caller, *token_ids.at(0_usize), lp_amount_, ArrayTrait::new().span()
+                            );
                         eventCurrencyAmounts.append(currency_amount_);
                     }
 
@@ -591,7 +599,7 @@ mod InstaSwapPair {
                             caller,
                             *token_ids.at(0_usize),
                             *token_amounts.at(0_usize),
-                            ArrayTrait::new()
+                            ArrayTrait::new().span()
                         );
                     currencyAmounts.append(currency_amount_);
 
@@ -694,7 +702,7 @@ mod InstaSwapPair {
                             contract,
                             *token_ids.at(0_usize),
                             *token_amounts.at(0_usize),
-                            ArrayTrait::new()
+                            ArrayTrait::new().span()
                         );
                     currencyAmounts.append(currency_amount_);
 
@@ -730,31 +738,6 @@ mod InstaSwapPair {
         return royalty;
     }
 
-    //############
-    // RECEIVERS #
-    //############
-
-    fn onERC1155Received(
-        ref self: ContractState,
-        operator: ContractAddress,
-        from: ContractAddress,
-        id: u256,
-        value: u256,
-        data: Array<felt252>
-    ) -> u32 {
-        return 0_u32; // TODO: return value
-    }
-
-    fn onERC1155BatchReceived(
-        ref self: ContractState,
-        operator: ContractAddress,
-        from: ContractAddress,
-        ids: Array<u256>,
-        values: Array<u256>,
-        data: Array<felt252>
-    ) -> u32 {
-        return 0_u32; // TODO: return value
-    }
 
     //##########
     // Getters #
@@ -806,7 +789,9 @@ mod InstaSwapPair {
         let currency_amount_sans_royal_ = AMM::get_currency_amount_when_sell(
             *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
         );
-        let royalty_ = get_royalty_with_amount(self.royalty_fee_thousand.read(), currency_amount_sans_royal_);
+        let royalty_ = get_royalty_with_amount(
+            self.royalty_fee_thousand.read(), currency_amount_sans_royal_
+        );
         let currency_amount_ = currency_amount_sans_royal_ - royalty_;
         currency_amounts_.append(currency_amount_);
         token_ids.pop_front();
@@ -842,7 +827,9 @@ mod InstaSwapPair {
         let currency_amount_sans_royal_ = AMM::get_currency_amount_when_buy(
             *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
         );
-        let royalty_ = get_royalty_with_amount(self.royalty_fee_thousand.read(), currency_amount_sans_royal_);
+        let royalty_ = get_royalty_with_amount(
+            self.royalty_fee_thousand.read(), currency_amount_sans_royal_
+        );
 
         let currency_amount_ = currency_amount_sans_royal_ - royalty_;
         currency_amounts_.append(currency_amount_);
@@ -861,35 +848,27 @@ mod InstaSwapPair {
     //
 
     #[external(v0)]
-    impl IERC1155Impl of super::IERC1155<ContractState> {
+    impl IERC1155Impl of erc1155::ERC1155ABI<ContractState> {
+        // IERC1155
+
         fn uri(self: @ContractState, token_id: u256) -> Span<felt252> {
             let erc1155_self = ERC1155::unsafe_new_contract_state();
-            return erc1155_self.uri(token_id);
+
+            erc1155_self.uri(:token_id)
         }
 
         fn balance_of(self: @ContractState, account: starknet::ContractAddress, id: u256) -> u256 {
-            self._balances.read((id, account))
+            let erc1155_self = ERC1155::unsafe_new_contract_state();
+
+            erc1155_self.balance_of(:account, :id)
         }
 
         fn balance_of_batch(
             self: @ContractState, accounts: Span<starknet::ContractAddress>, ids: Span<u256>
         ) -> Array<u256> {
-            assert(accounts.len() == ids.len(), 'ERC1155: bad accounts & ids len');
+            let erc1155_self = ERC1155::unsafe_new_contract_state();
 
-            let mut batch_balances = ArrayTrait::<u256>::new();
-
-            let mut i: usize = 0;
-            let len = accounts.len();
-            loop {
-                if (i >= len) {
-                    break ();
-                }
-
-                batch_balances.append(self.balance_of(*accounts.at(i), *ids.at(i)));
-                i += 1;
-            };
-
-            batch_balances
+            erc1155_self.balance_of_batch(:accounts, :ids)
         }
 
         fn is_approved_for_all(
@@ -897,15 +876,17 @@ mod InstaSwapPair {
             account: starknet::ContractAddress,
             operator: starknet::ContractAddress
         ) -> bool {
-            self._operator_approvals.read((account, operator))
+            let erc1155_self = ERC1155::unsafe_new_contract_state();
+
+            erc1155_self.is_approved_for_all(:account, :operator)
         }
 
         fn set_approval_for_all(
             ref self: ContractState, operator: starknet::ContractAddress, approved: bool
         ) {
-            let caller = starknet::get_caller_address();
+            let mut erc1155_self = ERC1155::unsafe_new_contract_state();
 
-            self._set_approval_for_all(owner: caller, :operator, :approved);
+            erc1155_self.set_approval_for_all(:operator, :approved);
         }
 
         fn safe_transfer_from(
@@ -916,13 +897,9 @@ mod InstaSwapPair {
             amount: u256,
             data: Span<felt252>
         ) {
-            let caller = starknet::get_caller_address();
-            assert(
-                (from == caller) | self.is_approved_for_all(account: from, operator: caller),
-                'ERC1155: caller not allowed'
-            );
+            let mut erc1155_self = ERC1155::unsafe_new_contract_state();
 
-            self._safe_transfer_from(:from, :to, :id, :amount, :data);
+            erc1155_self.safe_transfer_from(:from, :to, :id, :amount, :data);
         }
 
         fn safe_batch_transfer_from(
@@ -933,51 +910,18 @@ mod InstaSwapPair {
             amounts: Span<u256>,
             data: Span<felt252>
         ) {
-            let caller = starknet::get_caller_address();
-            assert(
-                (from == caller) | self.is_approved_for_all(account: from, operator: caller),
-                'ERC1155: caller not allowed'
-            );
+            let mut erc1155_self = ERC1155::unsafe_new_contract_state();
 
-            self._safe_batch_transfer_from(:from, :to, :ids, :amounts, :data);
+            erc1155_self.safe_batch_transfer_from(:from, :to, :ids, :amounts, :data);
         }
+
+        // IERC165
 
         fn supports_interface(self: @ContractState, interface_id: u32) -> bool {
-            if ((interface_id == erc1155::interface::IERC1155_ID)
-                | (interface_id == erc1155::interface::IERC1155_METADATA_ID)) {
-                true
-            } else {
-                let erc165_self = ERC165::unsafe_new_contract_state();
+            let erc1155_self = ERC1155::unsafe_new_contract_state();
 
-                erc165_self.supports_interface(:interface_id)
-            }
+            erc1155_self.supports_interface(:interface_id)
         }
-    }
-
-    fn supports_interface(self: @ContractState, interface_id: u32) -> bool {
-        // ERC165Contract::supports_interface(interface_id)
-        return true; // TODO: need implement base on ERC165
-    }
-
-
-    fn balance_of(self: @ContractState, account: ContractAddress, token_id: u256, ) -> u256 {
-        ERC1155::balance_of(account, token_id)
-    }
-
-    fn balance_of_batch(
-        self: @ContractState, accounts: Array<ContractAddress>, token_ids: Array<u256>, 
-    ) -> Array<u256> {
-        ERC1155::balance_of_batch(accounts, token_ids)
-    }
-
-    fn is_approved_for_all(
-        self: @ContractState, account: ContractAddress, operator: ContractAddress, 
-    ) -> bool {
-        ERC1155::is_approved_for_all(account, operator)
-    }
-
-    fn uri(self: @ContractState, token_id: u256) -> felt252 {
-        return ERC1155::uri(token_id);
     }
 
     fn owner(self: @ContractState) -> felt252 {
@@ -986,35 +930,6 @@ mod InstaSwapPair {
 
     fn get_lp_supply(self: @ContractState, token_id: u256) -> u256 {
         return self.lp_total_supplies.read(token_id);
-    }
-
-    //
-    // Externals
-    //
-    fn set_approval_for_all(ref self: ContractState, operator: ContractAddress, approved: bool, ) {
-        ERC1155::set_approval_for_all(operator, approved, );
-    }
-
-    fn safe_transfer_from(
-        ref self: ContractState,
-        from: ContractAddress,
-        to: ContractAddress,
-        token_id: u256,
-        amount: u256,
-        data: Array<felt252>,
-    ) {
-        ERC1155::safe_transfer_from(from, to, token_id, amount, data, );
-    }
-
-    fn safe_batch_transfer_from(
-        ref self: ContractState,
-        from: ContractAddress,
-        to: ContractAddress,
-        token_ids: Array<u256>,
-        amounts: Array<u256>,
-        data: Array<felt252>,
-    ) {
-        ERC1155::safe_batch_transfer_from(from, to, token_ids, amounts, data, );
     }
 
     //########
