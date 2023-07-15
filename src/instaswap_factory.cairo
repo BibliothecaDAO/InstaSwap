@@ -47,7 +47,7 @@ mod InstaSwapFactory {
         assert(token_a.is_non_zero(), 'ZERO_TOKEN_ADDRESS');
         assert(token_b.is_non_zero(), 'ZERO_TOKEN_ADDRESS');
         assert(token_a != token_b, 'IDENTICAL_ADDRESSES');
-        let exist_pair = get_pair(token_a, token_b);
+        let exist_pair = get_pair(@self, token_a, token_b);
         assert(exist_pair.is_non_zero(), 'PAIR_EXISTS');
         // TODO support interface check make token_m to be ERC20, token_n to be ERC1155
         let mut token_m: ContractAddress = token_a;

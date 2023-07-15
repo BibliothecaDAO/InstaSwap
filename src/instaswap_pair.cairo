@@ -180,17 +180,15 @@ mod InstaSwapPair {
         royalty_fee_address_: ContractAddress,
         contract_admin: ContractAddress,
     ) {
-        Upgradeable::initializer(contract_admin);
         self.currency_address.write(currency_address_);
         self.token_address.write(token_address_);
         self.lp_fee_thousand.write(lp_fee_thousand_);
         set_royalty_info(ref self, royalty_fee_thousand_, royalty_fee_address_);
         let mut erc1155_self = ERC1155::unsafe_new_contract_state();
         erc1155_self.initializer(uri_: uri);
-    }
 
-    fn upgrade(ref self: ContractState, impl_hash: ClassHash) {
-        Upgradeable::_upgrade(impl_hash);
+        let mut ownable_self = Ownable::unsafe_new_contract_state();
+        ownable_self.initializer();
     }
 
     //#####
@@ -924,8 +922,29 @@ mod InstaSwapPair {
         }
     }
 
-    fn owner(self: @ContractState) -> felt252 {
-        return Upgradeable::get_admin().into();
+    //
+    // Ownable impl
+    //
+
+    #[external(v0)]
+    impl IOwnableImpl of ownable::IOwnable<ContractState> {
+        fn owner(self: @ContractState) -> starknet::ContractAddress {
+            let ownable_self = Ownable::unsafe_new_contract_state();
+
+            ownable_self.owner()
+        }
+
+        fn transfer_ownership(ref self: ContractState, new_owner: starknet::ContractAddress) {
+            let mut ownable_self = Ownable::unsafe_new_contract_state();
+
+            ownable_self.transfer_ownership(:new_owner);
+        }
+
+        fn renounce_ownership(ref self: ContractState) {
+            let mut ownable_self = Ownable::unsafe_new_contract_state();
+
+            ownable_self.renounce_ownership();
+        }
     }
 
     fn get_lp_supply(self: @ContractState, token_id: u256) -> u256 {
@@ -938,15 +957,44 @@ mod InstaSwapPair {
     fn set_royalty_info(
         ref self: ContractState, royalty_fee_thousand_: u256, royalty_fee_address_: ContractAddress, 
     ) {
-        assert_only_admin();
+        self._only_owner();
 
         self.royalty_fee_thousand.write(royalty_fee_thousand_);
         self.royalty_fee_address.write(royalty_fee_address_);
     }
 
     fn set_lp_info(ref self: ContractState, lp_fee_thousand: u256, ) {
-        assert_only_admin();
+        self._only_owner();
 
         self.lp_fee_thousand.write(lp_fee_thousand);
+    }
+
+    #[generate_trait]
+    impl ModifierImpl of ModifierTrait {
+        fn _only_owner(self: @ContractState) {
+            let ownable_self = Ownable::unsafe_new_contract_state();
+
+            ownable_self.assert_only_owner();
+        }
+    }
+    //
+    // Upgrade impl
+    //
+
+    #[generate_trait]
+    impl UpgradeImpl of UpgradeTrait {
+        fn upgrade(ref self: ContractState, new_implementation: starknet::ClassHash) {
+            // Modifiers
+            self._only_owner();
+
+            // Body
+            self._upgrade(:new_implementation);
+        }
+    }
+    #[generate_trait]
+    impl HelperImpl of HelperTrait {
+        fn _upgrade(ref self: ContractState, new_implementation: starknet::ClassHash) {
+            starknet::replace_class_syscall(new_implementation);
+        }
     }
 }
