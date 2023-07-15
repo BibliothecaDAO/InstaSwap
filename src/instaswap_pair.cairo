@@ -12,31 +12,57 @@ trait IERC20<TContractState> {
     fn allowance(self: @TContractState, owner: ContractAddress, spender: ContractAddress) -> u256;
     // external functions
     fn transfer(ref self: TContractState, recipient: ContractAddress, amount: u256) -> bool;
-    fn transfer_from(ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256) -> bool;
+    fn transfer_from(
+        ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256
+    ) -> bool;
     fn approve(ref self: TContractState, spender: ContractAddress, amount: u256) -> bool;
-    fn increase_allowance(ref self: TContractState, spender: ContractAddress, added_value: u256) -> bool;
-    fn decrease_allowance(ref self: TContractState, spender: ContractAddress, subtracted_value: u256) -> bool;
+    fn increase_allowance(
+        ref self: TContractState, spender: ContractAddress, added_value: u256
+    ) -> bool;
+    fn decrease_allowance(
+        ref self: TContractState, spender: ContractAddress, subtracted_value: u256
+    ) -> bool;
 }
 
 #[starknet::interface]
 trait IERC1155<TContractState> {
-    // IERC1155
-    fn balance_of(self: @TContractState, account: ContractAddress, id: u256) -> u256;
-    fn balance_of_batch(self: @TContractState, accounts: Array<ContractAddress>, ids: Array<u256>) -> Array<u256>;
-    fn is_approved_for_all(self: @TContractState, account: ContractAddress, operator: ContractAddress) -> bool;
-    fn set_approval_for_all(ref self: TContractState, operator: ContractAddress, approved: bool);
-    fn safe_transfer_from(ref self: TContractState, 
-        from: ContractAddress, to: ContractAddress, id: u256, amount: u256, data: Array<felt252>
+    fn uri(self: @TContractState, token_id: u256) -> Span<felt252>;
+
+    fn supports_interface(self: @TContractState, interface_id: u32) -> bool;
+
+    fn balance_of(self: @TContractState, account: starknet::ContractAddress, id: u256) -> u256;
+
+    fn balance_of_batch(
+        self: @TContractState, accounts: Span<starknet::ContractAddress>, ids: Span<u256>
+    ) -> Array<u256>;
+
+    fn is_approved_for_all(
+        self: @TContractState,
+        account: starknet::ContractAddress,
+        operator: starknet::ContractAddress
+    ) -> bool;
+
+    fn set_approval_for_all(
+        ref self: TContractState, operator: starknet::ContractAddress, approved: bool
     );
-    fn safe_batch_transfer_from(ref self: TContractState, 
-        from: ContractAddress,
-        to: ContractAddress,
-        ids: Array<u256>,
-        amounts: Array<u256>,
-        data: Array<felt252>
+
+    fn safe_transfer_from(
+        ref self: TContractState,
+        from: starknet::ContractAddress,
+        to: starknet::ContractAddress,
+        id: u256,
+        amount: u256,
+        data: Span<felt252>
     );
-    // IERC1155MetadataURI
-    fn uri(self: @TContractState, id: u256) -> felt252;
+
+    fn safe_batch_transfer_from(
+        ref self: TContractState,
+        from: starknet::ContractAddress,
+        to: starknet::ContractAddress,
+        ids: Span<u256>,
+        amounts: Span<u256>,
+        data: Span<felt252>
+    );
 }
 
 #[starknet::contract]
@@ -46,7 +72,6 @@ mod InstaSwapPair {
     use starknet::contract_address_const;
     use starknet::ContractAddress;
     use starknet::ContractAddressIntoFelt252;
-    use array::ArrayTrait;
     use array::SpanTrait;
     use dict::Felt252DictTrait;
     use option::OptionTrait;
@@ -64,10 +89,16 @@ mod InstaSwapPair {
     use instaswap::libraries::upgradeable::Upgradeable;
     use starknet::class_hash::ClassHash;
     use instaswap::libraries::upgradeable::Upgradeable::assert_only_admin;
+    use array::{ SpanSerde, ArrayTrait };
+    use rules_erc1155::erc1155::erc1155;
+    use rules_erc1155::erc1155::erc1155::ERC1155;
+    use rules_erc1155::erc1155::erc1155::ERC1155::{ HelperTrait as ERC1155HelperTrait };
+    use rules_erc1155::erc1155::interface::IERC1155;
+    use rules_erc1155::introspection::erc165::{ IERC165 as rules_erc1155_IERC165 };
 
-
-    use instaswap::libraries::library_erc1155::ERC1155; // TODO: remove when openzeppelin ERC1155 library is supported
-    // use openzeppelin::introspection::erc165::ERC165Contract; // TODO: remove when openzeppelin ERC165 library is supported
+    use kass::access::ownable;
+    use kass::access::ownable::{ Ownable, IOwnable };
+    use kass::access::ownable::Ownable::{ HelperTrait as OwnableHelperTrait, ModifierTrait as OwnableModifierTrait };
 
     use instaswap::libraries::library::AMM;
 
@@ -137,8 +168,9 @@ mod InstaSwapPair {
     //##############
 
     #[constructor]
-    fn constructor(ref self: ContractState, 
-        uri: felt252,
+    fn constructor(
+        ref self: ContractState,
+        uri: Span<felt252>,
         currency_address_: ContractAddress,
         token_address_: ContractAddress,
         lp_fee_thousand_: u256,
@@ -151,11 +183,11 @@ mod InstaSwapPair {
         self.token_address.write(token_address_);
         self.lp_fee_thousand.write(lp_fee_thousand_);
         set_royalty_info(ref self, royalty_fee_thousand_, royalty_fee_address_);
-        ERC1155::initializer(uri);
+        let mut erc1155_self = ERC1155::unsafe_new_contract_state();
+        erc1155_self.initializer(uri_: uri);
     }
 
-    fn upgrade(ref self: ContractState, 
-        impl_hash: ClassHash) {
+    fn upgrade(ref self: ContractState, impl_hash: ClassHash) {
         Upgradeable::_upgrade(impl_hash);
     }
 
@@ -163,7 +195,8 @@ mod InstaSwapPair {
     // LP #
     //#####
 
-    fn add_liquidity(ref self: ContractState, 
+    fn add_liquidity(
+        ref self: ContractState,
         mut max_currency_amounts: Array<u256>,
         mut token_ids: Array<u256>,
         mut token_amounts: Array<u256>,
@@ -176,7 +209,8 @@ mod InstaSwapPair {
         _add_liquidity(ref self, max_currency_amounts, token_ids, token_amounts);
     }
 
-    fn _add_liquidity(ref self: ContractState, 
+    fn _add_liquidity(
+        ref self: ContractState,
         mut max_currency_amounts: Array<u256>,
         mut token_ids: Array<u256>,
         mut token_amounts: Array<u256>,
@@ -184,6 +218,8 @@ mod InstaSwapPair {
         let eventTokenIds: Array<u256> = token_ids.clone();
         let eventTokenAmounts: Array<u256> = token_amounts.clone();
         let mut eventCurrencyAmounts: Array<u256> = ArrayTrait::new();
+        let mut erc1155_self = ERC1155::unsafe_new_contract_state();
+
         loop {
             match max_currency_amounts.pop_front() {
                 Option::Some(max_currency_amount) => {
@@ -204,7 +240,8 @@ mod InstaSwapPair {
                     if (lp_total_supply_ == 0.into()) {
                         currency_amount_ = *max_currency_amounts.at(0_usize);
 
-                        let square = (*max_currency_amounts.at(0_usize)) * (*token_amounts.at(0_usize));
+                        let square = (*max_currency_amounts.at(0_usize))
+                            * (*token_amounts.at(0_usize));
                         let lp_total_supply_new_felt: felt252 = u256_sqrt(square).into();
                         let lp_total_supply_new_ = lp_total_supply_new_felt.into();
                         let lp_amount_for_lp_ = lp_total_supply_new_ - 1000.into();
@@ -214,22 +251,24 @@ mod InstaSwapPair {
 
                         IERC1155Dispatcher {
                             contract_address: token_address_
-                        }.safe_transfer_from(
-                            caller,
-                            contract,
-                            *token_ids.at(0_usize),
-                            *token_amounts.at(0_usize),
-                            ArrayTrait::new()
+                        }
+                            .safe_transfer_from(
+                                caller,
+                                contract,
+                                *token_ids.at(0_usize),
+                                *token_amounts.at(0_usize),
+                                ArrayTrait::new().span()
+                            );
+                        erc1155_self._mint(
+                            caller, *token_ids.at(0_usize), lp_amount_for_lp_, ArrayTrait::new().span()
                         );
 
-                        ERC1155::_mint(caller, *token_ids.at(0_usize), lp_amount_for_lp_, ArrayTrait::new());
-
                         // permanently lock the first MINIMUM_LIQUIDITY tokens
-                        ERC1155::_mint(
+                        erc1155_self._mint(
                             contract_address_const::<0>(),
                             *token_ids.at(0_usize),
                             1000.into(),
-                            ArrayTrait::new()
+                            ArrayTrait::new().span()
                         );
                         eventCurrencyAmounts.append(currency_amount_);
                     } else {
@@ -237,7 +276,7 @@ mod InstaSwapPair {
                         // X/Y = dx/dy
                         // dx = X*dy/Y
                         let numerator = currency_reserve_ * (*token_amounts.at(0_usize));
-                        let currency_amount_ = numerator / token_reserve_; 
+                        let currency_amount_ = numerator / token_reserve_;
                         assert(currency_amount_ <= max_currency_amount, 'amount too high');
 
                         // Transfer currency to contract
@@ -249,19 +288,22 @@ mod InstaSwapPair {
 
                         IERC1155Dispatcher {
                             contract_address: token_address_
-                        }.safe_transfer_from(
-                            caller,
-                            contract,
-                            *token_ids.at(0_usize),
-                            *token_amounts.at(0_usize),
-                            ArrayTrait::new()
-                        );
+                        }
+                            .safe_transfer_from(
+                                caller,
+                                contract,
+                                *token_ids.at(0_usize),
+                                *token_amounts.at(0_usize),
+                                ArrayTrait::new().span()
+                            );
 
                         let lp_amount_ = lp_total_supply_ * currency_amount_ / currency_reserve_;
                         let lp_total_supply_new_ = lp_total_supply_ + lp_amount_;
 
                         // Mint LP tokens to caller
-                        ERC1155::_mint(caller, *token_ids.at(0_usize), lp_amount_, ArrayTrait::new());
+                        erc1155_self._mint(
+                            caller, *token_ids.at(0_usize), lp_amount_, ArrayTrait::new().span()
+                        );
                         eventCurrencyAmounts.append(currency_amount_);
                     }
 
@@ -274,7 +316,6 @@ mod InstaSwapPair {
                     let new_token_reserve = token_reserve_ + *token_amounts.at(0_usize);
                     self.token_reserves.write(*token_ids.at(0_usize), new_token_reserve);
 
-
                     token_ids.pop_front();
                     token_amounts.pop_front();
                 },
@@ -283,17 +324,20 @@ mod InstaSwapPair {
                 },
             };
         };
-        self.emit(LiquidityAdded {
-            provider: starknet::get_caller_address(),
-            tokenIds: eventTokenIds,
-            tokenAmounts: eventTokenAmounts,
-            currencyAmounts: eventCurrencyAmounts,
-        });
-        return ;
-
+        self
+            .emit(
+                LiquidityAdded {
+                    provider: starknet::get_caller_address(),
+                    tokenIds: eventTokenIds,
+                    tokenAmounts: eventTokenAmounts,
+                    currencyAmounts: eventCurrencyAmounts,
+                }
+            );
+        return;
     }
 
-    fn remove_liquidity(ref self: ContractState, 
+    fn remove_liquidity(
+        ref self: ContractState,
         mut min_currency_amounts: Array<u256>,
         mut token_ids: Array<u256>,
         mut min_token_amounts: Array<u256>,
@@ -305,12 +349,13 @@ mod InstaSwapPair {
         assert(min_currency_amounts.len() == lp_amounts.len(), 'not same length 3');
         let info = starknet::get_block_info().unbox();
         assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
-        _remove_liquidity(ref self, 
-            min_currency_amounts, token_ids, min_token_amounts, lp_amounts, 
+        _remove_liquidity(
+            ref self, min_currency_amounts, token_ids, min_token_amounts, lp_amounts, 
         );
     }
 
-    fn _remove_liquidity(ref self: ContractState, 
+    fn _remove_liquidity(
+        ref self: ContractState,
         mut min_currency_amounts: Array<u256>,
         mut token_ids: Array<u256>,
         mut min_token_amounts: Array<u256>,
@@ -319,6 +364,8 @@ mod InstaSwapPair {
         let eventTokenIds: Array<u256> = token_ids.clone();
         let mut eventTokenAmounts: Array<u256> = ArrayTrait::new();
         let mut eventObjs: Array<LiquidityRemovedEventObj> = ArrayTrait::new();
+        let mut erc1155_self = ERC1155::unsafe_new_contract_state();
+
         loop {
             match min_currency_amounts.pop_front() {
                 Option::Some(min_currency_amount) => {
@@ -336,7 +383,15 @@ mod InstaSwapPair {
                     assert(lp_total_supply_ > *lp_amounts.at(0_usize), 'insufficient lp supply');
 
                     // using _to_rounded_liquidity()
-                    let (currency_amount_, token_amount_, sold_token_numerator, bought_currency_numerator, royalty_numerator) = _to_rounded_liquidity(ref self, 
+                    let (
+                        currency_amount_,
+                        token_amount_,
+                        sold_token_numerator,
+                        bought_currency_numerator,
+                        royalty_numerator
+                    ) =
+                        _to_rounded_liquidity(
+                        ref self,
                         *token_ids.at(0_usize),
                         *lp_amounts.at(0_usize),
                         token_reserve_,
@@ -355,7 +410,7 @@ mod InstaSwapPair {
                     eventTokenAmounts.append(token_amount_);
 
                     // Burn LP tokens from caller
-                    ERC1155::_burn(caller, *token_ids.at(0_usize), *lp_amounts.at(0_usize));
+                    erc1155_self._burn(caller, *token_ids.at(0_usize), *lp_amounts.at(0_usize));
 
                     let new_currency_reserve = currency_reserve_ - currency_amount_;
                     self.currency_reserves.write(*token_ids.at(0_usize), new_currency_reserve);
@@ -367,12 +422,19 @@ mod InstaSwapPair {
                     self.lp_total_supplies.write(*token_ids.at(0_usize), lp_total_supply);
 
                     // Transfer currency to caller
-                    IERC20Dispatcher { contract_address: currency_address_ }.transfer(caller, currency_amount_);
+                    IERC20Dispatcher {
+                        contract_address: currency_address_
+                    }.transfer(caller, currency_amount_);
                     IERC1155Dispatcher {
                         contract_address: token_address_
-                    }.safe_transfer_from(
-                        contract, caller, *token_ids.at(0_usize), token_amount_, ArrayTrait::new()
-                    );
+                    }
+                        .safe_transfer_from(
+                            contract,
+                            caller,
+                            *token_ids.at(0_usize),
+                            token_amount_,
+                            ArrayTrait::new().span()
+                        );
 
                     token_ids.pop_front();
                     min_token_amounts.pop_front();
@@ -383,29 +445,26 @@ mod InstaSwapPair {
                 },
             };
         };
-        
-        self.emit(LiquidityRemoved {
-            provider: starknet::get_caller_address(),
-            tokenIds: eventTokenIds,
-            tokenAmounts: eventTokenAmounts,
-            details: eventObjs,
-        });
-        
+
+        self
+            .emit(
+                LiquidityRemoved {
+                    provider: starknet::get_caller_address(),
+                    tokenIds: eventTokenIds,
+                    tokenAmounts: eventTokenAmounts,
+                    details: eventObjs,
+                }
+            );
     }
 
-    fn _to_rounded_liquidity(ref self: ContractState, 
+    fn _to_rounded_liquidity(
+        ref self: ContractState,
         _token_id: u256,
         _amount_pool: u256,
         _token_reserve: u256,
         _currency_reserve: u256,
         _total_liquidity: u256,
-    ) -> (
-        u256,
-        u256,
-        u256,
-        u256,
-        u256,
-    ) {
+    ) -> (u256, u256, u256, u256, u256, ) {
         let mut currency_numerator: u256 = _amount_pool * _currency_reserve;
         let mut token_numerator: u256 = _amount_pool * _token_reserve;
 
@@ -415,10 +474,11 @@ mod InstaSwapPair {
         if sold_token_numerator != 0 {
             // The trade happens "after" funds are out of the pool
             // so we need to remove these funds before computing the rate
-            let virtual_token_reserve =
-                (_token_reserve - (token_numerator / _total_liquidity)) * _total_liquidity;
-            let virtual_currency_reserve =
-                (_currency_reserve - (currency_numerator / _total_liquidity)) * _total_liquidity;
+            let virtual_token_reserve = (_token_reserve - (token_numerator / _total_liquidity))
+                * _total_liquidity;
+            let virtual_currency_reserve = (_currency_reserve
+                - (currency_numerator / _total_liquidity))
+                * _total_liquidity;
 
             // Skip process if any of the two reserves is left empty
             // this step is important to avoid an error withdrawing all left liquidity
@@ -429,14 +489,15 @@ mod InstaSwapPair {
                     virtual_token_reserve,
                     self.lp_fee_thousand.read(),
                 );
-                let mut royalty_numerator = get_royalty_with_amount(self, bought_currency_numerator);
+                let mut royalty_numerator = get_royalty_with_amount(
+                    self.royalty_fee_thousand.read(), bought_currency_numerator
+                );
                 bought_currency_numerator -= royalty_numerator;
 
                 currency_numerator += bought_currency_numerator;
 
                 // Add royalty numerator (needs to be converted to ROYALTIES_DENOMINATOR)
-                royalty_numerator =
-                    royalty_numerator * 1000 / _total_liquidity;
+                royalty_numerator = royalty_numerator * 1000 / _total_liquidity;
 
                 return (
                     currency_numerator / _total_liquidity,
@@ -449,19 +510,14 @@ mod InstaSwapPair {
         }
 
         // Calculate amounts
-        (
-            currency_numerator / _total_liquidity,
-            token_numerator / _total_liquidity,
-            0,
-            0,
-            0,
-        )
+        (currency_numerator / _total_liquidity, token_numerator / _total_liquidity, 0, 0, 0, )
     }
 
     //#############
     // BUY TOKENS #
     //#############
-    fn buy_tokens(ref self: ContractState, 
+    fn buy_tokens(
+        ref self: ContractState,
         mut max_currency_amounts: Array<u256>,
         mut token_ids: Array<u256>,
         mut token_amounts: Array<u256>,
@@ -472,11 +528,18 @@ mod InstaSwapPair {
         let info = starknet::get_block_info().unbox();
         assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
 
-        let currency_amounts = _buy_tokens(ref self, max_currency_amounts, token_ids, token_amounts);
+        let currency_amounts = _buy_tokens(
+            ref self, max_currency_amounts, token_ids, token_amounts
+        );
         return currency_amounts;
     }
 
-    fn _buy_tokens(ref self: ContractState, mut max_currency_amounts: Array<u256>, mut token_ids: Array<u256>, mut token_amounts: Array<u256>) -> Array<u256> {
+    fn _buy_tokens(
+        ref self: ContractState,
+        mut max_currency_amounts: Array<u256>,
+        mut token_ids: Array<u256>,
+        mut token_amounts: Array<u256>
+    ) -> Array<u256> {
         let eventTokenIds: Array<u256> = token_ids.clone();
         let eventTokenAmounts: Array<u256> = token_amounts.clone();
         let mut currencyAmounts: Array<u256> = ArrayTrait::new();
@@ -494,10 +557,15 @@ mod InstaSwapPair {
                     let lp_fee_thousand_ = self.lp_fee_thousand.read();
 
                     let currency_amount_sans_royal_ = AMM::get_currency_amount_when_buy(
-                        *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
+                        *token_amounts.at(0_usize),
+                        currency_reserve_,
+                        token_reserve_,
+                        lp_fee_thousand_,
                     );
 
-                    let royalty_ = get_royalty_with_amount(self.royalty_fee_thousand.read(), currency_amount_sans_royal_);
+                    let royalty_ = get_royalty_with_amount(
+                        self.royalty_fee_thousand.read(), currency_amount_sans_royal_
+                    );
 
                     let currency_amount_ = currency_amount_sans_royal_ + royalty_;
 
@@ -517,9 +585,14 @@ mod InstaSwapPair {
                     // Transfer token to caller
                     IERC1155Dispatcher {
                         contract_address: token_address_
-                    }.safe_transfer_from(
-                        contract, caller, *token_ids.at(0_usize), *token_amounts.at(0_usize), ArrayTrait::new()
-                    );
+                    }
+                        .safe_transfer_from(
+                            contract,
+                            caller,
+                            *token_ids.at(0_usize),
+                            *token_amounts.at(0_usize),
+                            ArrayTrait::new()
+                        );
                     currencyAmounts.append(currency_amount_);
 
                     token_ids.pop_front();
@@ -531,20 +604,23 @@ mod InstaSwapPair {
             };
         };
         // Emit event
-        self.emit(TokensPurchase {
-            buyer: starknet::get_caller_address(),
-            tokenBoughtIds: eventTokenIds,
-            tokenBoughtAmounts: eventTokenAmounts,
-            currencySoldAmounts: currencyAmounts.clone(),
-        });
+        self
+            .emit(
+                TokensPurchase {
+                    buyer: starknet::get_caller_address(),
+                    tokenBoughtIds: eventTokenIds,
+                    tokenBoughtAmounts: eventTokenAmounts,
+                    currencySoldAmounts: currencyAmounts.clone(),
+                }
+            );
         return currencyAmounts;
-        
     }
 
     //##############
     // SELL TOKENS #
     //##############
-    fn sell_tokens(ref self: ContractState, 
+    fn sell_tokens(
+        ref self: ContractState,
         mut min_currency_amounts: Array<u256>,
         mut token_ids: Array<u256>,
         mut token_amounts: Array<u256>,
@@ -555,11 +631,18 @@ mod InstaSwapPair {
         let info = starknet::get_block_info().unbox();
         assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
 
-        let currency_amount = _sell_tokens(ref self, min_currency_amounts, token_ids, token_amounts, );
+        let currency_amount = _sell_tokens(
+            ref self, min_currency_amounts, token_ids, token_amounts, 
+        );
         return currency_amount;
     }
 
-    fn _sell_tokens(ref self: ContractState, mut min_currency_amounts: Array<u256>, mut token_ids: Array<u256>, mut token_amounts: Array<u256>) -> Array<u256> {
+    fn _sell_tokens(
+        ref self: ContractState,
+        mut min_currency_amounts: Array<u256>,
+        mut token_ids: Array<u256>,
+        mut token_amounts: Array<u256>
+    ) -> Array<u256> {
         let eventTokenIds: Array<u256> = token_ids.clone();
         let eventTokenAmounts: Array<u256> = token_amounts.clone();
         let mut currencyAmounts: Array<u256> = ArrayTrait::new();
@@ -577,10 +660,15 @@ mod InstaSwapPair {
                     let lp_fee_thousand_ = self.lp_fee_thousand.read();
 
                     let currency_amount_sans_royal_ = AMM::get_currency_amount_when_sell(
-                        *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
+                        *token_amounts.at(0_usize),
+                        currency_reserve_,
+                        token_reserve_,
+                        lp_fee_thousand_,
                     );
 
-                    let royalty_ = get_royalty_with_amount(self.royalty_fee_thousand.read(), currency_amount_sans_royal_);
+                    let royalty_ = get_royalty_with_amount(
+                        self.royalty_fee_thousand.read(), currency_amount_sans_royal_
+                    );
 
                     let currency_amount_ = currency_amount_sans_royal_ - royalty_;
 
@@ -589,18 +677,25 @@ mod InstaSwapPair {
                     self.currency_reserves.write(*token_ids.at(0_usize), new_currency_reserve);
 
                     // Transfer currency to caller
-                    IERC20Dispatcher { contract_address: currency_address_ }.transfer(caller, currency_amount_);
+                    IERC20Dispatcher {
+                        contract_address: currency_address_
+                    }.transfer(caller, currency_amount_);
                     // Royalty transfer
                     IERC20Dispatcher {
                         contract_address: currency_address_
-                        }.transfer(self.royalty_fee_address.read(), royalty_);
+                    }.transfer(self.royalty_fee_address.read(), royalty_);
 
                     // Transfer token from caller
                     IERC1155Dispatcher {
                         contract_address: token_address_
-                    }.safe_transfer_from(
-                        caller, contract, *token_ids.at(0_usize), *token_amounts.at(0_usize), ArrayTrait::new()
-                    );
+                    }
+                        .safe_transfer_from(
+                            caller,
+                            contract,
+                            *token_ids.at(0_usize),
+                            *token_amounts.at(0_usize),
+                            ArrayTrait::new()
+                        );
                     currencyAmounts.append(currency_amount_);
 
                     token_ids.pop_front();
@@ -612,14 +707,16 @@ mod InstaSwapPair {
             };
         };
         // Emit event
-        self.emit(TokensSale {
-            seller: starknet::get_caller_address(),
-            tokenSoldIds: eventTokenIds,
-            tokenSoldAmounts: eventTokenAmounts,
-            currencyBoughtAmounts: currencyAmounts.clone(),
-        });
+        self
+            .emit(
+                TokensSale {
+                    seller: starknet::get_caller_address(),
+                    tokenSoldIds: eventTokenIds,
+                    tokenSoldAmounts: eventTokenAmounts,
+                    currencyBoughtAmounts: currencyAmounts.clone(),
+                }
+            );
         return currencyAmounts;
-
     }
 
     //################
@@ -637,7 +734,8 @@ mod InstaSwapPair {
     // RECEIVERS #
     //############
 
-    fn onERC1155Received(ref self: ContractState, 
+    fn onERC1155Received(
+        ref self: ContractState,
         operator: ContractAddress,
         from: ContractAddress,
         id: u256,
@@ -647,7 +745,8 @@ mod InstaSwapPair {
         return 0_u32; // TODO: return value
     }
 
-    fn onERC1155BatchReceived(ref self: ContractState, 
+    fn onERC1155BatchReceived(
+        ref self: ContractState,
         operator: ContractAddress,
         from: ContractAddress,
         ids: Array<u256>,
@@ -681,21 +780,23 @@ mod InstaSwapPair {
         return self.lp_fee_thousand.read();
     }
 
-    fn get_all_currency_amount_when_sell(self: @ContractState, 
-        token_ids: Array<u256>, token_amounts: Array<u256>, 
+    fn get_all_currency_amount_when_sell(
+        self: @ContractState, token_ids: Array<u256>, token_amounts: Array<u256>, 
     ) -> Array<u256> {
         let mut currency_amounts_ = ArrayTrait::new();
 
-        get_all_currency_amount_when_sell_loop(self, token_ids, token_amounts, ref currency_amounts_, );
+        get_all_currency_amount_when_sell_loop(
+            self, token_ids, token_amounts, ref currency_amounts_, 
+        );
         return currency_amounts_;
     }
 
-    fn get_all_currency_amount_when_sell_loop(self: @ContractState, 
+    fn get_all_currency_amount_when_sell_loop(
+        self: @ContractState,
         mut token_ids: Array<u256>,
         mut token_amounts: Array<u256>,
         ref currency_amounts_: Array<u256>,
     ) {
-        
         if (token_ids.len() == 0_usize) {
             return ();
         }
@@ -705,29 +806,33 @@ mod InstaSwapPair {
         let currency_amount_sans_royal_ = AMM::get_currency_amount_when_sell(
             *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
         );
-        let royalty_ = get_royalty_with_amount(self, currency_amount_sans_royal_, );
+        let royalty_ = get_royalty_with_amount(self.royalty_fee_thousand.read(), currency_amount_sans_royal_);
         let currency_amount_ = currency_amount_sans_royal_ - royalty_;
         currency_amounts_.append(currency_amount_);
         token_ids.pop_front();
         token_amounts.pop_front();
-        get_all_currency_amount_when_sell_loop(self, token_ids, token_amounts, ref currency_amounts_, );
+        get_all_currency_amount_when_sell_loop(
+            self, token_ids, token_amounts, ref currency_amounts_, 
+        );
     }
 
-    fn get_all_currency_amount_when_buy(self: @ContractState, 
-        token_ids: Array<u256>, token_amounts: Array<u256>, 
+    fn get_all_currency_amount_when_buy(
+        self: @ContractState, token_ids: Array<u256>, token_amounts: Array<u256>, 
     ) -> Array<u256> {
         let mut currency_amounts_ = ArrayTrait::new();
 
-        get_all_currency_amount_when_buy_loop(self, token_ids, token_amounts, ref currency_amounts_, );
+        get_all_currency_amount_when_buy_loop(
+            self, token_ids, token_amounts, ref currency_amounts_, 
+        );
         return currency_amounts_;
     }
 
-    fn get_all_currency_amount_when_buy_loop(self: @ContractState, 
+    fn get_all_currency_amount_when_buy_loop(
+        self: @ContractState,
         mut token_ids: Array<u256>,
         mut token_amounts: Array<u256>,
         ref currency_amounts_: Array<u256>,
     ) {
-        
         if (token_ids.len() == 0_usize) {
             return ();
         }
@@ -737,18 +842,117 @@ mod InstaSwapPair {
         let currency_amount_sans_royal_ = AMM::get_currency_amount_when_buy(
             *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
         );
-        let royalty_ = get_royalty_with_amount(self, currency_amount_sans_royal_, );
+        let royalty_ = get_royalty_with_amount(self.royalty_fee_thousand.read(), currency_amount_sans_royal_);
 
         let currency_amount_ = currency_amount_sans_royal_ - royalty_;
         currency_amounts_.append(currency_amount_);
         token_ids.pop_front();
         token_amounts.pop_front();
-        get_all_currency_amount_when_buy_loop(self, token_ids, token_amounts, ref currency_amounts_, );
+        get_all_currency_amount_when_buy_loop(
+            self, token_ids, token_amounts, ref currency_amounts_, 
+        );
     }
 
     //########################
     // ERC1155 for LP tokens #
     //########################
+    //
+    // IERC1155 impl
+    //
+
+    #[external(v0)]
+    impl IERC1155Impl of super::IERC1155<ContractState> {
+        fn uri(self: @ContractState, token_id: u256) -> Span<felt252> {
+            let erc1155_self = ERC1155::unsafe_new_contract_state();
+            return erc1155_self.uri(token_id);
+        }
+
+        fn balance_of(self: @ContractState, account: starknet::ContractAddress, id: u256) -> u256 {
+            self._balances.read((id, account))
+        }
+
+        fn balance_of_batch(
+            self: @ContractState, accounts: Span<starknet::ContractAddress>, ids: Span<u256>
+        ) -> Array<u256> {
+            assert(accounts.len() == ids.len(), 'ERC1155: bad accounts & ids len');
+
+            let mut batch_balances = ArrayTrait::<u256>::new();
+
+            let mut i: usize = 0;
+            let len = accounts.len();
+            loop {
+                if (i >= len) {
+                    break ();
+                }
+
+                batch_balances.append(self.balance_of(*accounts.at(i), *ids.at(i)));
+                i += 1;
+            };
+
+            batch_balances
+        }
+
+        fn is_approved_for_all(
+            self: @ContractState,
+            account: starknet::ContractAddress,
+            operator: starknet::ContractAddress
+        ) -> bool {
+            self._operator_approvals.read((account, operator))
+        }
+
+        fn set_approval_for_all(
+            ref self: ContractState, operator: starknet::ContractAddress, approved: bool
+        ) {
+            let caller = starknet::get_caller_address();
+
+            self._set_approval_for_all(owner: caller, :operator, :approved);
+        }
+
+        fn safe_transfer_from(
+            ref self: ContractState,
+            from: starknet::ContractAddress,
+            to: starknet::ContractAddress,
+            id: u256,
+            amount: u256,
+            data: Span<felt252>
+        ) {
+            let caller = starknet::get_caller_address();
+            assert(
+                (from == caller) | self.is_approved_for_all(account: from, operator: caller),
+                'ERC1155: caller not allowed'
+            );
+
+            self._safe_transfer_from(:from, :to, :id, :amount, :data);
+        }
+
+        fn safe_batch_transfer_from(
+            ref self: ContractState,
+            from: starknet::ContractAddress,
+            to: starknet::ContractAddress,
+            ids: Span<u256>,
+            amounts: Span<u256>,
+            data: Span<felt252>
+        ) {
+            let caller = starknet::get_caller_address();
+            assert(
+                (from == caller) | self.is_approved_for_all(account: from, operator: caller),
+                'ERC1155: caller not allowed'
+            );
+
+            self._safe_batch_transfer_from(:from, :to, :ids, :amounts, :data);
+        }
+
+        fn supports_interface(self: @ContractState, interface_id: u32) -> bool {
+            if ((interface_id == erc1155::interface::IERC1155_ID)
+                | (interface_id == erc1155::interface::IERC1155_METADATA_ID)) {
+                true
+            } else {
+                let erc165_self = ERC165::unsafe_new_contract_state();
+
+                erc165_self.supports_interface(:interface_id)
+            }
+        }
+    }
 
     fn supports_interface(self: @ContractState, interface_id: u32) -> bool {
         // ERC165Contract::supports_interface(interface_id)
@@ -760,11 +964,15 @@ mod InstaSwapPair {
         ERC1155::balance_of(account, token_id)
     }
 
-    fn balance_of_batch(self: @ContractState, accounts: Array<ContractAddress>, token_ids: Array<u256>, ) -> Array<u256> {
+    fn balance_of_batch(
+        self: @ContractState, accounts: Array<ContractAddress>, token_ids: Array<u256>, 
+    ) -> Array<u256> {
         ERC1155::balance_of_batch(accounts, token_ids)
     }
 
-    fn is_approved_for_all(self: @ContractState, account: ContractAddress, operator: ContractAddress, ) -> bool {
+    fn is_approved_for_all(
+        self: @ContractState, account: ContractAddress, operator: ContractAddress, 
+    ) -> bool {
         ERC1155::is_approved_for_all(account, operator)
     }
 
@@ -787,7 +995,8 @@ mod InstaSwapPair {
         ERC1155::set_approval_for_all(operator, approved, );
     }
 
-    fn safe_transfer_from(ref self: ContractState, 
+    fn safe_transfer_from(
+        ref self: ContractState,
         from: ContractAddress,
         to: ContractAddress,
         token_id: u256,
@@ -797,7 +1006,8 @@ mod InstaSwapPair {
         ERC1155::safe_transfer_from(from, to, token_id, amount, data, );
     }
 
-    fn safe_batch_transfer_from(ref self: ContractState, 
+    fn safe_batch_transfer_from(
+        ref self: ContractState,
         from: ContractAddress,
         to: ContractAddress,
         token_ids: Array<u256>,
@@ -810,7 +1020,9 @@ mod InstaSwapPair {
     //########
     // ADMIN #
     //########
-    fn set_royalty_info(ref self: ContractState, royalty_fee_thousand_: u256, royalty_fee_address_: ContractAddress, ) {
+    fn set_royalty_info(
+        ref self: ContractState, royalty_fee_thousand_: u256, royalty_fee_address_: ContractAddress, 
+    ) {
         assert_only_admin();
 
         self.royalty_fee_thousand.write(royalty_fee_thousand_);
