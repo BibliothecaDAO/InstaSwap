@@ -1,7 +1,3 @@
-// All modules must be present here
-
-mod utils;
-
 mod instaswap_pair;
 
 mod libraries;
