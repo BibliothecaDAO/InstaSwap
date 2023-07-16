@@ -65,6 +65,60 @@ trait IERC1155<TContractState> {
     );
 }
 
+#[starknet::interface]
+trait IInstaSwapPair<TContractState> {
+    fn add_liquidity(
+        ref self: TContractState,
+        mut max_currency_amounts: Array<u256>,
+        mut token_ids: Array<u256>,
+        mut token_amounts: Array<u256>,
+        deadline: felt252,
+    );
+
+    fn remove_liquidity(
+        ref self: TContractState,
+        mut min_currency_amounts: Array<u256>,
+        mut token_ids: Array<u256>,
+        mut min_token_amounts: Array<u256>,
+        mut lp_amounts: Array<u256>,
+        deadline: felt252,
+    );
+
+    fn buy_tokens(
+        ref self: TContractState,
+        mut max_currency_amounts: Array<u256>,
+        mut token_ids: Array<u256>,
+        mut token_amounts: Array<u256>,
+        deadline: felt252,
+    ) -> Array<u256>;
+
+    fn sell_tokens(
+        ref self: TContractState,
+        mut min_currency_amounts: Array<u256>,
+        mut token_ids: Array<u256>,
+        mut token_amounts: Array<u256>,
+        deadline: felt252,
+    ) -> Array<u256>;
+
+    fn get_currency_address(self: @TContractState) -> ContractAddress;
+
+    fn get_token_address(self: @TContractState) -> ContractAddress;
+
+    fn get_currency_reserves(self: @TContractState, token_id: u256) -> u256;
+
+    fn get_token_reserves(self: @TContractState, token_id: u256) -> u256;
+
+    fn get_lp_fee_thousand(self: @TContractState) -> u256;
+
+    fn get_all_currency_amount_when_sell(
+        self: @TContractState, token_ids: Array<u256>, token_amounts: Array<u256>, 
+    ) -> Array<u256>;
+
+    fn get_all_currency_amount_when_buy(
+        self: @TContractState, token_ids: Array<u256>, token_amounts: Array<u256>, 
+    ) -> Array<u256>;
+}
+
 #[starknet::contract]
 mod InstaSwapPair {
     use zeroable::Zeroable;
@@ -191,23 +245,132 @@ mod InstaSwapPair {
         ownable_self.initializer();
     }
 
-    //#####
-    // LP #
-    //#####
+    #[external(v0)]
+    impl IInstaSwapPairImpl of super::IInstaSwapPair<ContractState> {
+        //#####
+        // LP #
+        //#####
 
-    fn add_liquidity(
-        ref self: ContractState,
-        mut max_currency_amounts: Array<u256>,
-        mut token_ids: Array<u256>,
-        mut token_amounts: Array<u256>,
-        deadline: felt252,
-    ) {
-        assert(max_currency_amounts.len() == token_ids.len(), 'not same length 1');
-        assert(max_currency_amounts.len() == token_amounts.len(), 'not same length 2');
-        let info = starknet::get_block_info().unbox();
-        assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
-        _add_liquidity(ref self, max_currency_amounts, token_ids, token_amounts);
+        fn add_liquidity(
+            ref self: ContractState,
+            mut max_currency_amounts: Array<u256>,
+            mut token_ids: Array<u256>,
+            mut token_amounts: Array<u256>,
+            deadline: felt252,
+        ) {
+            assert(max_currency_amounts.len() == token_ids.len(), 'not same length 1');
+            assert(max_currency_amounts.len() == token_amounts.len(), 'not same length 2');
+            let info = starknet::get_block_info().unbox();
+            assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
+            _add_liquidity(ref self, max_currency_amounts, token_ids, token_amounts);
+        }
+
+        fn remove_liquidity(
+            ref self: ContractState,
+            mut min_currency_amounts: Array<u256>,
+            mut token_ids: Array<u256>,
+            mut min_token_amounts: Array<u256>,
+            mut lp_amounts: Array<u256>,
+            deadline: felt252,
+        ) {
+            assert(min_currency_amounts.len() == token_ids.len(), 'not same length 1');
+            assert(min_currency_amounts.len() == min_token_amounts.len(), 'not same length 2');
+            assert(min_currency_amounts.len() == lp_amounts.len(), 'not same length 3');
+            let info = starknet::get_block_info().unbox();
+            assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
+            _remove_liquidity(
+                ref self, min_currency_amounts, token_ids, min_token_amounts, lp_amounts, 
+            );
+        }
+
+        //#############
+        // BUY TOKENS #
+        //#############
+        fn buy_tokens(
+            ref self: ContractState,
+            mut max_currency_amounts: Array<u256>,
+            mut token_ids: Array<u256>,
+            mut token_amounts: Array<u256>,
+            deadline: felt252,
+        ) -> Array<u256> {
+            assert(max_currency_amounts.len() == token_ids.len(), 'not same length 1');
+            assert(max_currency_amounts.len() == token_amounts.len(), 'not same length 2');
+            let info = starknet::get_block_info().unbox();
+            assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
+
+            let currency_amounts = _buy_tokens(
+                ref self, max_currency_amounts, token_ids, token_amounts
+            );
+            return currency_amounts;
+        }
+
+        //##############
+        // SELL TOKENS #
+        //##############
+        fn sell_tokens(
+            ref self: ContractState,
+            mut min_currency_amounts: Array<u256>,
+            mut token_ids: Array<u256>,
+            mut token_amounts: Array<u256>,
+            deadline: felt252,
+        ) -> Array<u256> {
+            assert(min_currency_amounts.len() == token_ids.len(), 'not same length 1');
+            assert(min_currency_amounts.len() == token_amounts.len(), 'not same length 2');
+            let info = starknet::get_block_info().unbox();
+            assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
+
+            let currency_amount = _sell_tokens(
+                ref self, min_currency_amounts, token_ids, token_amounts, 
+            );
+            return currency_amount;
+        }
+        //##########
+        // Getters #
+        //##########
+
+        fn get_currency_address(self: @ContractState) -> ContractAddress {
+            return self.currency_address.read();
+        }
+
+        fn get_token_address(self: @ContractState) -> ContractAddress {
+            return self.token_address.read();
+        }
+
+        fn get_currency_reserves(self: @ContractState, token_id: u256) -> u256 {
+            return self.currency_reserves.read(token_id);
+        }
+
+        fn get_token_reserves(self: @ContractState, token_id: u256) -> u256 {
+            return self.token_reserves.read(token_id);
+        }
+
+        fn get_lp_fee_thousand(self: @ContractState) -> u256 {
+            return self.lp_fee_thousand.read();
+        }
+
+        fn get_all_currency_amount_when_sell(
+            self: @ContractState, token_ids: Array<u256>, token_amounts: Array<u256>, 
+        ) -> Array<u256> {
+            let mut currency_amounts_ = ArrayTrait::new();
+
+            get_all_currency_amount_when_sell_loop(
+                self, token_ids, token_amounts, ref currency_amounts_, 
+            );
+            return currency_amounts_;
+        }
+
+        fn get_all_currency_amount_when_buy(
+            self: @ContractState, token_ids: Array<u256>, token_amounts: Array<u256>, 
+        ) -> Array<u256> {
+            let mut currency_amounts_ = ArrayTrait::new();
+
+            get_all_currency_amount_when_buy_loop(
+                self, token_ids, token_amounts, ref currency_amounts_, 
+            );
+            return currency_amounts_;
+        }
     }
+
 
     fn _add_liquidity(
         ref self: ContractState,
@@ -342,23 +505,6 @@ mod InstaSwapPair {
         return;
     }
 
-    fn remove_liquidity(
-        ref self: ContractState,
-        mut min_currency_amounts: Array<u256>,
-        mut token_ids: Array<u256>,
-        mut min_token_amounts: Array<u256>,
-        mut lp_amounts: Array<u256>,
-        deadline: felt252,
-    ) {
-        assert(min_currency_amounts.len() == token_ids.len(), 'not same length 1');
-        assert(min_currency_amounts.len() == min_token_amounts.len(), 'not same length 2');
-        assert(min_currency_amounts.len() == lp_amounts.len(), 'not same length 3');
-        let info = starknet::get_block_info().unbox();
-        assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
-        _remove_liquidity(
-            ref self, min_currency_amounts, token_ids, min_token_amounts, lp_amounts, 
-        );
-    }
 
     fn _remove_liquidity(
         ref self: ContractState,
@@ -519,26 +665,6 @@ mod InstaSwapPair {
         (currency_numerator / _total_liquidity, token_numerator / _total_liquidity, 0, 0, 0, )
     }
 
-    //#############
-    // BUY TOKENS #
-    //#############
-    fn buy_tokens(
-        ref self: ContractState,
-        mut max_currency_amounts: Array<u256>,
-        mut token_ids: Array<u256>,
-        mut token_amounts: Array<u256>,
-        deadline: felt252,
-    ) -> Array<u256> {
-        assert(max_currency_amounts.len() == token_ids.len(), 'not same length 1');
-        assert(max_currency_amounts.len() == token_amounts.len(), 'not same length 2');
-        let info = starknet::get_block_info().unbox();
-        assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
-
-        let currency_amounts = _buy_tokens(
-            ref self, max_currency_amounts, token_ids, token_amounts
-        );
-        return currency_amounts;
-    }
 
     fn _buy_tokens(
         ref self: ContractState,
@@ -622,26 +748,6 @@ mod InstaSwapPair {
         return currencyAmounts;
     }
 
-    //##############
-    // SELL TOKENS #
-    //##############
-    fn sell_tokens(
-        ref self: ContractState,
-        mut min_currency_amounts: Array<u256>,
-        mut token_ids: Array<u256>,
-        mut token_amounts: Array<u256>,
-        deadline: felt252,
-    ) -> Array<u256> {
-        assert(min_currency_amounts.len() == token_ids.len(), 'not same length 1');
-        assert(min_currency_amounts.len() == token_amounts.len(), 'not same length 2');
-        let info = starknet::get_block_info().unbox();
-        assert(info.block_timestamp < deadline.try_into().unwrap(), 'deadline passed');
-
-        let currency_amount = _sell_tokens(
-            ref self, min_currency_amounts, token_ids, token_amounts, 
-        );
-        return currency_amount;
-    }
 
     fn _sell_tokens(
         ref self: ContractState,
@@ -737,41 +843,6 @@ mod InstaSwapPair {
     }
 
 
-    //##########
-    // Getters #
-    //##########
-
-    fn get_currency_address(self: @ContractState) -> ContractAddress {
-        return self.currency_address.read();
-    }
-
-    fn get_token_address(self: @ContractState) -> ContractAddress {
-        return self.token_address.read();
-    }
-
-    fn get_currency_reserves(self: @ContractState, token_id: u256) -> u256 {
-        return self.currency_reserves.read(token_id);
-    }
-
-    fn get_token_reserves(self: @ContractState, token_id: u256) -> u256 {
-        return self.token_reserves.read(token_id);
-    }
-
-    fn get_lp_fee_thousand(self: @ContractState) -> u256 {
-        return self.lp_fee_thousand.read();
-    }
-
-    fn get_all_currency_amount_when_sell(
-        self: @ContractState, token_ids: Array<u256>, token_amounts: Array<u256>, 
-    ) -> Array<u256> {
-        let mut currency_amounts_ = ArrayTrait::new();
-
-        get_all_currency_amount_when_sell_loop(
-            self, token_ids, token_amounts, ref currency_amounts_, 
-        );
-        return currency_amounts_;
-    }
-
     fn get_all_currency_amount_when_sell_loop(
         self: @ContractState,
         mut token_ids: Array<u256>,
@@ -799,16 +870,6 @@ mod InstaSwapPair {
         );
     }
 
-    fn get_all_currency_amount_when_buy(
-        self: @ContractState, token_ids: Array<u256>, token_amounts: Array<u256>, 
-    ) -> Array<u256> {
-        let mut currency_amounts_ = ArrayTrait::new();
-
-        get_all_currency_amount_when_buy_loop(
-            self, token_ids, token_amounts, ref currency_amounts_, 
-        );
-        return currency_amounts_;
-    }
 
     fn get_all_currency_amount_when_buy_loop(
         self: @ContractState,
