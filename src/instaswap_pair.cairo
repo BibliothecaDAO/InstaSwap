@@ -69,34 +69,34 @@ trait IERC1155<TContractState> {
 trait IInstaSwapPair<TContractState> {
     fn add_liquidity(
         ref self: TContractState,
-        mut max_currency_amounts: Array<u256>,
-        mut token_ids: Array<u256>,
-        mut token_amounts: Array<u256>,
+        max_currency_amounts: Array<u256>,
+        token_ids: Array<u256>,
+        token_amounts: Array<u256>,
         deadline: felt252,
     );
 
     fn remove_liquidity(
         ref self: TContractState,
-        mut min_currency_amounts: Array<u256>,
-        mut token_ids: Array<u256>,
-        mut min_token_amounts: Array<u256>,
-        mut lp_amounts: Array<u256>,
+        min_currency_amounts: Array<u256>,
+        token_ids: Array<u256>,
+        min_token_amounts: Array<u256>,
+        lp_amounts: Array<u256>,
         deadline: felt252,
     );
 
     fn buy_tokens(
         ref self: TContractState,
-        mut max_currency_amounts: Array<u256>,
-        mut token_ids: Array<u256>,
-        mut token_amounts: Array<u256>,
+        max_currency_amounts: Array<u256>,
+        token_ids: Array<u256>,
+        token_amounts: Array<u256>,
         deadline: felt252,
     ) -> Array<u256>;
 
     fn sell_tokens(
         ref self: TContractState,
-        mut min_currency_amounts: Array<u256>,
-        mut token_ids: Array<u256>,
-        mut token_amounts: Array<u256>,
+        min_currency_amounts: Array<u256>,
+        token_ids: Array<u256>,
+        token_amounts: Array<u256>,
         deadline: felt252,
     ) -> Array<u256>;
 
@@ -253,9 +253,9 @@ mod InstaSwapPair {
 
         fn add_liquidity(
             ref self: ContractState,
-            mut max_currency_amounts: Array<u256>,
-            mut token_ids: Array<u256>,
-            mut token_amounts: Array<u256>,
+            max_currency_amounts: Array<u256>,
+            token_ids: Array<u256>,
+            token_amounts: Array<u256>,
             deadline: felt252,
         ) {
             assert(max_currency_amounts.len() == token_ids.len(), 'not same length 1');
@@ -267,10 +267,10 @@ mod InstaSwapPair {
 
         fn remove_liquidity(
             ref self: ContractState,
-            mut min_currency_amounts: Array<u256>,
-            mut token_ids: Array<u256>,
-            mut min_token_amounts: Array<u256>,
-            mut lp_amounts: Array<u256>,
+            min_currency_amounts: Array<u256>,
+            token_ids: Array<u256>,
+            min_token_amounts: Array<u256>,
+            lp_amounts: Array<u256>,
             deadline: felt252,
         ) {
             assert(min_currency_amounts.len() == token_ids.len(), 'not same length 1');
@@ -288,9 +288,9 @@ mod InstaSwapPair {
         //#############
         fn buy_tokens(
             ref self: ContractState,
-            mut max_currency_amounts: Array<u256>,
-            mut token_ids: Array<u256>,
-            mut token_amounts: Array<u256>,
+            max_currency_amounts: Array<u256>,
+            token_ids: Array<u256>,
+            token_amounts: Array<u256>,
             deadline: felt252,
         ) -> Array<u256> {
             assert(max_currency_amounts.len() == token_ids.len(), 'not same length 1');
@@ -309,9 +309,9 @@ mod InstaSwapPair {
         //##############
         fn sell_tokens(
             ref self: ContractState,
-            mut min_currency_amounts: Array<u256>,
-            mut token_ids: Array<u256>,
-            mut token_amounts: Array<u256>,
+            min_currency_amounts: Array<u256>,
+            token_ids: Array<u256>,
+            token_amounts: Array<u256>,
             deadline: felt252,
         ) -> Array<u256> {
             assert(min_currency_amounts.len() == token_ids.len(), 'not same length 1');
@@ -374,10 +374,13 @@ mod InstaSwapPair {
 
     fn _add_liquidity(
         ref self: ContractState,
-        mut max_currency_amounts: Array<u256>,
-        mut token_ids: Array<u256>,
-        mut token_amounts: Array<u256>,
+        max_currency_amounts_in: Array<u256>,
+        token_ids_in: Array<u256>,
+        token_amounts_in: Array<u256>,
     ) {
+        let mut max_currency_amounts: Array<u256> = max_currency_amounts_in.clone();
+        let mut token_ids: Array<u256> = token_ids_in.clone();
+        let mut token_amounts: Array<u256> = token_amounts_in.clone();
         let eventTokenIds: Array<u256> = token_ids.clone();
         let eventTokenAmounts: Array<u256> = token_amounts.clone();
         let mut eventCurrencyAmounts: Array<u256> = ArrayTrait::new();
@@ -508,11 +511,15 @@ mod InstaSwapPair {
 
     fn _remove_liquidity(
         ref self: ContractState,
-        mut min_currency_amounts: Array<u256>,
-        mut token_ids: Array<u256>,
-        mut min_token_amounts: Array<u256>,
-        mut lp_amounts: Array<u256>,
+        min_currency_amounts_in: Array<u256>,
+        token_ids_in: Array<u256>,
+        min_token_amounts_in: Array<u256>,
+        lp_amounts_in: Array<u256>,
     ) {
+        let mut min_currency_amounts: Array<u256> = min_currency_amounts_in.clone();
+        let mut token_ids: Array<u256> = token_ids_in.clone();
+        let mut min_token_amounts: Array<u256> = min_token_amounts_in.clone();
+        let mut lp_amounts: Array<u256> = lp_amounts_in.clone();
         let eventTokenIds: Array<u256> = token_ids.clone();
         let mut eventTokenAmounts: Array<u256> = ArrayTrait::new();
         let mut eventObjs: Array<LiquidityRemovedEventObj> = ArrayTrait::new();
@@ -616,7 +623,7 @@ mod InstaSwapPair {
         _token_reserve: u256,
         _currency_reserve: u256,
         _total_liquidity: u256,
-    ) -> (u256, u256, u256, u256, u256, ) {
+    ) -> (u256, u256, u256, u256, u256) {
         let mut currency_numerator: u256 = _amount_pool * _currency_reserve;
         let mut token_numerator: u256 = _amount_pool * _token_reserve;
 
@@ -668,10 +675,13 @@ mod InstaSwapPair {
 
     fn _buy_tokens(
         ref self: ContractState,
-        mut max_currency_amounts: Array<u256>,
-        mut token_ids: Array<u256>,
-        mut token_amounts: Array<u256>
+        max_currency_amounts_in: Array<u256>,
+        token_ids_in: Array<u256>,
+        token_amounts_in: Array<u256>
     ) -> Array<u256> {
+        let mut max_currency_amounts: Array<u256> = max_currency_amounts_in.clone();
+        let mut token_ids: Array<u256> = token_ids_in.clone();
+        let mut token_amounts: Array<u256> = token_amounts_in.clone();
         let eventTokenIds: Array<u256> = token_ids.clone();
         let eventTokenAmounts: Array<u256> = token_amounts.clone();
         let mut currencyAmounts: Array<u256> = ArrayTrait::new();
@@ -751,10 +761,13 @@ mod InstaSwapPair {
 
     fn _sell_tokens(
         ref self: ContractState,
-        mut min_currency_amounts: Array<u256>,
-        mut token_ids: Array<u256>,
-        mut token_amounts: Array<u256>
+        min_currency_amounts_in: Array<u256>,
+        token_ids_in: Array<u256>,
+        token_amounts_in: Array<u256>
     ) -> Array<u256> {
+        let mut min_currency_amounts: Array<u256> = min_currency_amounts_in.clone();
+        let mut token_ids: Array<u256> = token_ids_in.clone();
+        let mut token_amounts: Array<u256> = token_amounts_in.clone();
         let eventTokenIds: Array<u256> = token_ids.clone();
         let eventTokenAmounts: Array<u256> = token_amounts.clone();
         let mut currencyAmounts: Array<u256> = ArrayTrait::new();
@@ -845,10 +858,12 @@ mod InstaSwapPair {
 
     fn get_all_currency_amount_when_sell_loop(
         self: @ContractState,
-        mut token_ids: Array<u256>,
-        mut token_amounts: Array<u256>,
+        token_ids_in: Array<u256>,
+        token_amounts_in: Array<u256>,
         ref currency_amounts_: Array<u256>,
     ) {
+        let mut token_ids: Array<u256> = token_ids_in.clone();
+        let mut token_amounts: Array<u256> = token_amounts_in.clone();
         if (token_ids.len() == 0_usize) {
             return ();
         }
@@ -873,10 +888,12 @@ mod InstaSwapPair {
 
     fn get_all_currency_amount_when_buy_loop(
         self: @ContractState,
-        mut token_ids: Array<u256>,
-        mut token_amounts: Array<u256>,
+        token_ids_in: Array<u256>,
+        token_amounts_in: Array<u256>,
         ref currency_amounts_: Array<u256>,
     ) {
+        let mut token_ids: Array<u256> = token_ids_in.clone();
+        let mut token_amounts: Array<u256> = token_amounts_in.clone();
         if (token_ids.len() == 0_usize) {
             return ();
         }
