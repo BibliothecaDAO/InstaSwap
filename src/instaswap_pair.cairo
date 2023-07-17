@@ -117,6 +117,10 @@ trait IInstaSwapPair<TContractState> {
     fn get_all_currency_amount_when_buy(
         self: @TContractState, token_ids: Array<u256>, token_amounts: Array<u256>, 
     ) -> Array<u256>;
+
+    fn get_royalty_fee_thousand(self: @TContractState) -> u256;
+
+    fn get_royalty_fee_address(self: @TContractState) -> ContractAddress;
 }
 
 #[starknet::contract]
@@ -140,9 +144,7 @@ mod InstaSwapPair {
     use super::IERC1155DispatcherTrait;
     use super::IERC20Dispatcher;
     use super::IERC20DispatcherTrait;
-    use instaswap::libraries::upgradeable::Upgradeable;
     use starknet::class_hash::ClassHash;
-    use instaswap::libraries::upgradeable::Upgradeable::assert_only_admin;
     use array::{SpanSerde, ArrayTrait};
     use rules_erc1155::erc1155::erc1155;
     use rules_erc1155::erc1155::erc1155::ERC1155;
@@ -238,8 +240,14 @@ mod InstaSwapPair {
         self.token_address.write(token_address_);
         self.lp_fee_thousand.write(lp_fee_thousand_);
         let mut ownable_self = Ownable::unsafe_new_contract_state();
+
         ownable_self.initializer();
-        set_royalty_info(ref self, royalty_fee_thousand_, royalty_fee_address_);
+        ownable_self._transfer_ownership(contract_admin);
+        
+        // because set_royalty_info will() check owner, and the caller contract may not be owner, so we have to set royalty info here 
+        self.royalty_fee_thousand.write(royalty_fee_thousand_);
+        self.royalty_fee_address.write(royalty_fee_address_);
+
         let mut erc1155_self = ERC1155::unsafe_new_contract_state();
         erc1155_self.initializer(uri_: uri);
 
@@ -370,6 +378,15 @@ mod InstaSwapPair {
             );
             return currency_amounts_;
         }
+
+        fn get_royalty_fee_thousand(self: @ContractState) -> u256 {
+            return self.royalty_fee_thousand.read();
+        }
+
+        fn get_royalty_fee_address(self: @ContractState) -> ContractAddress {
+            return self.royalty_fee_address.read();
+        }
+
     }
 
 

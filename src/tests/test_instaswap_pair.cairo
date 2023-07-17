@@ -15,9 +15,13 @@ use rules_erc1155::erc1155::interface::IERC1155;
 use super::utils;
 use rules_utils::utils::partial_eq::SpanPartialEq;
 use super::mocks::account::Account;
+use starknet::ContractAddress;
+use kass::access::ownable::{ IOwnable, IOwnableDispatcher, IOwnableDispatcherTrait };
 use super::mocks::erc1155_receiver::{ ERC1155Receiver, ERC1155NonReceiver, SUCCESS, FAILURE };
 use rules_erc1155::erc1155::erc1155::ERC1155::{ ContractState as ERC1155ContractState, HelperTrait };
 use instaswap::instaswap_pair::{ InstaSwapPair, IInstaSwapPairDispatcher, IInstaSwapPairDispatcherTrait };
+use debug::PrintTrait;
+
 
 fn URI() -> Span<felt252> {
   let mut uri = ArrayTrait::new();
@@ -117,6 +121,14 @@ fn TOKEN_ADDRESS() -> starknet::ContractAddress {
   starknet::contract_address_const::<4343>()
 }
 
+fn LP_FEE_THOUSAND() -> u256 {
+  3.into()
+}
+
+fn ROYALTY_FEE_THOUSAND() -> u256 {
+  3.into()
+}
+
 fn ROYALTY_FEE_ADDRESS() -> starknet::ContractAddress {
   starknet::contract_address_const::<4344>()
 }
@@ -152,19 +164,19 @@ fn setup_with_owner(owner: starknet::ContractAddress) -> ERC1155ContractState {
   erc1155
 }
 
-fn setup_dispatcher(uri: Span<felt252>) -> IInstaSwapPairDispatcher {
+fn setup_dispatcher(uri: Span<felt252>) -> ContractAddress {
   let mut calldata = ArrayTrait::new();
 
   uri.serialize(ref output: calldata);
   CURRENCY_ADDRESS().serialize(ref output: calldata);
   TOKEN_ADDRESS().serialize(ref output: calldata);
-  u256_from_felt252(4).serialize(ref output: calldata);
-  u256_from_felt252(15).serialize(ref output: calldata);
+  LP_FEE_THOUSAND().serialize(ref output: calldata);
+  ROYALTY_FEE_THOUSAND().serialize(ref output: calldata);
   ROYALTY_FEE_ADDRESS().serialize(ref output: calldata);
   OWNER().serialize(ref output: calldata);
 
   let mut instaswap_pair_contract_address = utils::deploy(InstaSwapPair::TEST_CLASS_HASH, calldata);
-  IInstaSwapPairDispatcher { contract_address: instaswap_pair_contract_address }
+  instaswap_pair_contract_address
 }
 
 fn setup_receiver() -> starknet::ContractAddress {
@@ -183,16 +195,31 @@ fn setup_account() -> starknet::ContractAddress {
 #[available_gas(20000000)]
 fn test_constructor() {
   starknet::testing::set_caller_address(starknet::contract_address_const::<1>());
-  let mut instaswap_pair = setup_dispatcher(URI());
+  let mut instaswap_pair_address = setup_dispatcher(URI());
 
-  // assert(erc1155.uri(TOKEN_ID()) == URI(), 'uri should be URI()');
+  // test instaswap_pair functions
+  let mut instaswap_pair =   IInstaSwapPairDispatcher { contract_address: instaswap_pair_address };
+  assert(instaswap_pair.get_currency_address() == CURRENCY_ADDRESS(), 'currency address failed');
+  assert(instaswap_pair.get_token_address() == TOKEN_ADDRESS(), 'token address failed');
+  assert(instaswap_pair.get_lp_fee_thousand() == LP_FEE_THOUSAND(), 'lp fee thousand failed');
+  assert(instaswap_pair.get_royalty_fee_thousand() == ROYALTY_FEE_THOUSAND(), 'royalty fee thousand failed');
+  assert(instaswap_pair.get_royalty_fee_address() == ROYALTY_FEE_ADDRESS(), 'royalty fee address failed');
 
-  // assert(erc1155.balance_of(RECIPIENT(), TOKEN_ID()) == 0.into(), 'Balance should be zero');
+  // test erc1155 functions
+  let mut erc1155 = ERC1155ABIDispatcher { contract_address: instaswap_pair_address };
 
-  // assert(erc1155.supports_interface(erc1155::interface::IERC1155_ID), 'Missing interface ID');
-  // assert(erc1155.supports_interface(erc1155::interface::IERC1155_METADATA_ID), 'missing interface ID');
-  // assert(erc1155.supports_interface(erc165::IERC165_ID), 'missing interface ID');
+  assert(erc1155.uri(TOKEN_ID()) == URI(), 'uri should be URI()');
 
-  // assert(!erc1155.supports_interface(erc165::INVALID_ID), 'invalid interface ID');
+  assert(erc1155.balance_of(RECIPIENT(), TOKEN_ID()) == 0.into(), 'Balance should be zero');
+
+  assert(erc1155.supports_interface(erc1155::interface::IERC1155_ID), 'Missing interface ID');
+  assert(erc1155.supports_interface(erc1155::interface::IERC1155_METADATA_ID), 'missing interface ID');
+  assert(erc1155.supports_interface(erc165::IERC165_ID), 'missing interface ID');
+
+  assert(!erc1155.supports_interface(erc165::INVALID_ID), 'invalid interface ID');
+
+  let mut ownable = IOwnableDispatcher { contract_address: instaswap_pair_address };
+  ownable.owner().print();
+  assert(ownable.owner() == OWNER(), 'owner should be OWNER()');
 }
 
