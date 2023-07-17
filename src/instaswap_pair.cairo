@@ -237,12 +237,13 @@ mod InstaSwapPair {
         self.currency_address.write(currency_address_);
         self.token_address.write(token_address_);
         self.lp_fee_thousand.write(lp_fee_thousand_);
+        let mut ownable_self = Ownable::unsafe_new_contract_state();
+        ownable_self.initializer();
         set_royalty_info(ref self, royalty_fee_thousand_, royalty_fee_address_);
         let mut erc1155_self = ERC1155::unsafe_new_contract_state();
         erc1155_self.initializer(uri_: uri);
 
-        let mut ownable_self = Ownable::unsafe_new_contract_state();
-        ownable_self.initializer();
+
     }
 
     #[external(v0)]
