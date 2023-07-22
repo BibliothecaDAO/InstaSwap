@@ -148,14 +148,15 @@ mod InstaSwapPair {
     use array::{SpanSerde, ArrayTrait};
     use rules_erc1155::erc1155::erc1155;
     use rules_erc1155::erc1155::erc1155::ERC1155;
-    use rules_erc1155::erc1155::erc1155::ERC1155::{HelperTrait as ERC1155HelperTrait};
-    use rules_erc1155::erc1155::interface::IERC1155;
-    use rules_erc1155::introspection::erc165::{IERC165 as rules_erc1155_IERC165};
+    use rules_erc1155::erc1155::erc1155::ERC1155::{InternalTrait as ERC1155HelperTrait};
+    use rules_erc1155::erc1155::interface::{IERC1155, IERC1155Metadata};
+    use rules_utils::introspection::src5::SRC5;
+    use rules_utils::introspection::interface::ISRC5;
 
-    use kass::access::ownable;
-    use kass::access::ownable::{Ownable, IOwnable};
-    use kass::access::ownable::Ownable::{
-        HelperTrait as OwnableHelperTrait, ModifierTrait as OwnableModifierTrait
+    use jedinft::access::ownable;
+    use jedinft::access::ownable::{Ownable, IOwnable};
+    use jedinft::access::ownable::Ownable::{
+        InternalTrait as OwnableHelperTrait, ModifierTrait as OwnableModifierTrait
     };
 
     use instaswap::libraries::library::AMM;
@@ -243,15 +244,13 @@ mod InstaSwapPair {
 
         ownable_self.initializer();
         ownable_self._transfer_ownership(contract_admin);
-        
+
         // because set_royalty_info will() check owner, and the caller contract may not be owner, so we have to set royalty info here 
         self.royalty_fee_thousand.write(royalty_fee_thousand_);
         self.royalty_fee_address.write(royalty_fee_address_);
 
         let mut erc1155_self = ERC1155::unsafe_new_contract_state();
         erc1155_self.initializer(uri_: uri);
-
-
     }
 
     #[external(v0)]
@@ -386,7 +385,6 @@ mod InstaSwapPair {
         fn get_royalty_fee_address(self: @ContractState) -> ContractAddress {
             return self.royalty_fee_address.read();
         }
-
     }
 
 
@@ -1011,7 +1009,7 @@ mod InstaSwapPair {
 
         // IERC165
 
-        fn supports_interface(self: @ContractState, interface_id: u32) -> bool {
+        fn supports_interface(self: @ContractState, interface_id: felt252) -> bool {
             let erc1155_self = ERC1155::unsafe_new_contract_state();
 
             erc1155_self.supports_interface(:interface_id)
