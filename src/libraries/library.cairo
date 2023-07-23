@@ -16,7 +16,6 @@ impl AMMImpl of AMM {
     fn get_currency_amount_when_buy(
         token_amount: u256, currency_reserve: u256, token_reserve: u256, lp_fee_thousand: u256, 
     ) -> u256 {
-
         let fee_multiplier_ = 1000.into() - lp_fee_thousand;
         let numerator = currency_reserve * token_amount * 1000.into();
         let denominator1 = token_reserve - token_amount;
@@ -36,7 +35,6 @@ impl AMMImpl of AMM {
     fn get_currency_amount_when_sell(
         token_amount: u256, currency_reserve: u256, token_reserve: u256, lp_fee_thousand: u256, 
     ) -> u256 {
-
         let fee_multiplier_ = 1000.into() - lp_fee_thousand;
         let numerator = token_amount * currency_reserve * fee_multiplier_;
         let denominator = token_reserve * 1000 + token_amount * fee_multiplier_;

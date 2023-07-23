@@ -26,7 +26,8 @@ mod InstaSwapFactory {
     //##############
 
     #[constructor]
-    fn constructor(ref self: ContractState, 
+    fn constructor(
+        ref self: ContractState,
         pair_contract_class_hash_: ClassHash,
         lp_fee_thousand_: u256,
         royalty_fee_thousand_: u256,
@@ -40,9 +41,8 @@ mod InstaSwapFactory {
         self.pair_contract_class_hash.write(pair_contract_class_hash_);
     }
 
-    fn create_pair(ref self: ContractState, 
-        token_a: ContractAddress,
-        token_b: ContractAddress,
+    fn create_pair(
+        ref self: ContractState, token_a: ContractAddress, token_b: ContractAddress, 
     ) -> ContractAddress {
         assert(token_a.is_non_zero(), 'ZERO_TOKEN_ADDRESS');
         assert(token_b.is_non_zero(), 'ZERO_TOKEN_ADDRESS');
@@ -67,13 +67,10 @@ mod InstaSwapFactory {
         self.contract_admin.read().serialize(ref output);
         let mut serialized = output.span();
 
-
         let (result_address, result_data) = deploy_syscall(
-            self.pair_contract_class_hash.read(),
-            salt,
-            serialized,
-            false,
-        ).unwrap_syscall();
+            self.pair_contract_class_hash.read(), salt, serialized, false, 
+        )
+            .unwrap_syscall();
 
         self.pair.write((token_m, token_n), result_address);
         // TODO emit Event
@@ -82,9 +79,8 @@ mod InstaSwapFactory {
         return result_address;
     }
 
-    fn get_pair(self: @ContractState,
-        token_a: ContractAddress,
-        token_b: ContractAddress,
+    fn get_pair(
+        self: @ContractState, token_a: ContractAddress, token_b: ContractAddress, 
     ) -> ContractAddress {
         // TODO support interface check make token_m to be ERC20, token_n to be ERC1155
         let mut token_m: ContractAddress = token_a;
@@ -97,13 +93,10 @@ mod InstaSwapFactory {
     //     //TODO
     // }
 
-    fn get_num_of_pairs(self: @ContractState,) {
-        //TODO
+    fn get_num_of_pairs(self: @ContractState, ) {//TODO
     }
 
     fn get_pair_contract_class_hash(self: @ContractState) -> ClassHash {
         self.pair_contract_class_hash.read()
     }
-
-
 }

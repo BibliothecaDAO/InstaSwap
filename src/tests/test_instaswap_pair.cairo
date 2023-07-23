@@ -28,7 +28,7 @@ use debug::PrintTrait;
 use instaswap::libraries::erc20::{ERC20, IERC20Dispatcher, IERC20DispatcherTrait};
 
 use rules_utils::introspection::src5::SRC5;
-use rules_utils::introspection::interface::{ ISRC5, ISRC5_ID };
+use rules_utils::introspection::interface::{ISRC5, ISRC5_ID};
 
 fn URI() -> Span<felt252> {
     let mut uri = ArrayTrait::new();
@@ -39,7 +39,6 @@ fn URI() -> Span<felt252> {
 
     uri.span()
 }
-
 // TOKEN ID
 
 fn TOKEN_ID_1() -> u256 {
@@ -199,11 +198,25 @@ fn setup_account() -> starknet::ContractAddress {
 fn setup_erc20() -> ContractAddress {
     let mut calldata = ArrayTrait::new();
 
+    'erc20_token'.serialize(ref output: calldata);
+    'T20'.serialize(ref output: calldata);
+    10000000000000.serialize(ref output: calldata);
     OWNER().serialize(ref output: calldata);
-    TOKEN_ADDRESS().serialize(ref output: calldata);
 
     let mut erc20_contract_address = utils::deploy(ERC20::TEST_CLASS_HASH, calldata);
     erc20_contract_address
+}
+
+fn setup_erc1155() -> ContractAddress {
+    let mut calldata = ArrayTrait::new();
+
+    let mut uri = ArrayTrait::new();
+    uri.append(111);
+    uri.append(222);
+    uri.serialize(ref output: calldata);
+
+    let mut erc1155_contract_address = utils::deploy(ERC1155::TEST_CLASS_HASH, calldata);
+    erc1155_contract_address
 }
 
 //
@@ -213,7 +226,7 @@ fn setup_erc20() -> ContractAddress {
 #[test]
 #[available_gas(20000000)]
 fn test_constructor() {
-    starknet::testing::set_caller_address(starknet::contract_address_const::<1>());
+    starknet::testing::set_contract_address(OWNER());
     let mut instaswap_pair_address = setup_dispatcher(URI());
 
     // test instaswap_pair functions
@@ -245,4 +258,15 @@ fn test_constructor() {
     let mut ownable = IOwnableDispatcher { contract_address: instaswap_pair_address };
     ownable.owner().print();
     assert(ownable.owner() == OWNER(), 'owner should be OWNER()');
+}
+
+#[test]
+#[available_gas(20000000)]
+fn test_add_liquidity() {
+    starknet::testing::set_contract_address(OWNER());
+
+    let erc20_contract_address = setup_erc20();
+    let erc1155_contract_address = setup_erc1155();
+
+    let mut instaswap_pair_address = setup_dispatcher(URI());
 }
