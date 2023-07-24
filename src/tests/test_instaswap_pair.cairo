@@ -6,9 +6,15 @@ use traits::Into;
 use zeroable::Zeroable;
 use integer::u256_from_felt252;
 
+use core::result::ResultTrait;
+use option::OptionTrait;
+use starknet::class_hash::Felt252TryIntoClassHash;
+use traits::TryInto;
+use starknet::SyscallResultTrait;
+
 // locals
 use rules_erc1155::erc1155;
-use rules_erc1155::erc1155::{ERC1155, ERC1155ABIDispatcher, ERC1155ABIDispatcherTrait};
+use instaswap::erc1155::erc1155::{ERC1155, ERC1155ABIDispatcher, ERC1155ABIDispatcherTrait};
 use rules_erc1155::erc1155::interface::IERC1155;
 use rules_erc1155::erc1155::interface;
 
@@ -155,20 +161,20 @@ fn DATA(success: bool) -> Span<felt252> {
 // Setup
 //
 
-fn setup() -> ERC1155ContractState {
-    let owner = setup_receiver();
-    setup_with_owner(owner)
-}
+// fn setup() -> ERC1155ContractState {
+//     let owner = setup_receiver();
+//     setup_with_owner(owner)
+// }
 
-fn setup_with_owner(owner: starknet::ContractAddress) -> ERC1155ContractState {
-    let mut erc1155 = ERC1155::contract_state_for_testing();
+// fn setup_with_owner(owner: starknet::ContractAddress) -> ERC1155ContractState {
+//     let mut erc1155 = ERC1155::contract_state_for_testing();
 
-    erc1155.initializer(URI());
-    erc1155._mint(to: owner, id: TOKEN_ID(), amount: AMOUNT(), data: DATA(success: true));
-    erc1155._mint_batch(to: owner, ids: TOKEN_IDS(), amounts: AMOUNTS(), data: DATA(success: true));
+//     erc1155.initializer(URI());
+//     erc1155._mint(to: owner, id: TOKEN_ID(), amount: AMOUNT(), data: DATA(success: true));
+//     erc1155._mint_batch(to: owner, ids: TOKEN_IDS(), amounts: AMOUNTS(), data: DATA(success: true));
 
-    erc1155
-}
+//     erc1155
+// }
 
 fn setup_dispatcher(uri: Span<felt252>) -> ContractAddress {
     let mut calldata = ArrayTrait::new();
@@ -200,14 +206,14 @@ fn setup_erc20() -> ContractAddress {
 
     'erc20_token'.serialize(ref output: calldata);
     'T20'.serialize(ref output: calldata);
-    10000000000000.serialize(ref output: calldata);
+    10000000000000_u256.serialize(ref output: calldata);
     OWNER().serialize(ref output: calldata);
 
     let mut erc20_contract_address = utils::deploy(ERC20::TEST_CLASS_HASH, calldata);
     erc20_contract_address
 }
 
-fn setup_erc1155() -> ContractAddress {
+fn setup_erc1155(uri: Span<felt252>) {
     let mut calldata = ArrayTrait::new();
 
     let mut uri = ArrayTrait::new();
@@ -215,8 +221,10 @@ fn setup_erc1155() -> ContractAddress {
     uri.append(222);
     uri.serialize(ref output: calldata);
 
-    let mut erc1155_contract_address = utils::deploy(ERC1155::TEST_CLASS_HASH, calldata);
-    erc1155_contract_address
+    let x = starknet::deploy_syscall(ERC1155::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), false).unwrap_syscall();
+//     .unwrap();
+
+//   address
 }
 
 //
@@ -256,7 +264,6 @@ fn test_constructor() {
     assert(erc1155.supports_interface(interface::IERC1155_METADATA_ID), 'missing interface ID');
     assert(erc1155.supports_interface(ISRC5_ID), 'missing interface ID');
     let mut ownable = IOwnableDispatcher { contract_address: instaswap_pair_address };
-    ownable.owner().print();
     assert(ownable.owner() == OWNER(), 'owner should be OWNER()');
 }
 
@@ -266,7 +273,6 @@ fn test_add_liquidity() {
     starknet::testing::set_contract_address(OWNER());
 
     let erc20_contract_address = setup_erc20();
-    let erc1155_contract_address = setup_erc1155();
-
-    let mut instaswap_pair_address = setup_dispatcher(URI());
+    setup_erc1155(URI());
+// let mut instaswap_pair_address = setup_dispatcher(URI());
 }
