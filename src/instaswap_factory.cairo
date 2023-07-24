@@ -93,7 +93,7 @@ mod InstaSwapFactory {
     //     //TODO
     // }
 
-    fn get_num_of_pairs(self: @ContractState, ) {//TODO
+    fn get_num_of_pairs(self: @ContractState, ) { //TODO
     }
 
     fn get_pair_contract_class_hash(self: @ContractState) -> ClassHash {
