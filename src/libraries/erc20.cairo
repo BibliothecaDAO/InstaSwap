@@ -21,6 +21,8 @@ trait IERC20<TContractState> {
     fn decrease_allowance(
         ref self: TContractState, spender: ContractAddress, subtracted_value: u256
     ) -> bool;
+
+    fn mint(ref self: TContractState, recipient: ContractAddress, amount: u256);
 }
 
 #[starknet::contract]
@@ -135,6 +137,10 @@ mod ERC20 {
             ref self: ContractState, spender: ContractAddress, subtracted_value: u256
         ) -> bool {
             InternalImpl::_decrease_allowance(ref self, spender, subtracted_value)
+        }
+
+        fn mint(ref self: ContractState, recipient: ContractAddress, amount: u256) {
+            self._mint(recipient, amount);
         }
     }
 

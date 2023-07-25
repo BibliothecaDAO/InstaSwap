@@ -1,5 +1,8 @@
+use alexandria::data_structures::stack::StackTrait;
 use starknet::ContractAddress;
 use array::ArrayTrait;
+const SUCCESS: felt252 = 'SUCCESS';
+const FAILURE: felt252 = 'FAILURE';
 
 #[starknet::interface]
 trait IERC20<TContractState> {
@@ -125,12 +128,15 @@ trait IInstaSwapPair<TContractState> {
 
 #[starknet::contract]
 mod InstaSwapPair {
+    use rules_erc1155::erc1155::interface;
+    use array::{ SpanTrait, SpanSerde, ArrayTrait};
+    use rules_utils::introspection::interface::ISRC5;
+
     use zeroable::Zeroable;
     use starknet::get_caller_address;
     use starknet::contract_address_const;
     use starknet::ContractAddress;
     use starknet::ContractAddressIntoFelt252;
-    use array::SpanTrait;
     use dict::Felt252DictTrait;
     use option::OptionTrait;
     use option::OptionTraitImpl;
@@ -139,19 +145,18 @@ mod InstaSwapPair {
     use core::traits::Into;
     use box::BoxTrait;
     use clone::Clone;
+    use debug::PrintTrait;
     use array::ArrayTCloneImpl;
     use super::IERC1155Dispatcher;
     use super::IERC1155DispatcherTrait;
     use super::IERC20Dispatcher;
     use super::IERC20DispatcherTrait;
     use starknet::class_hash::ClassHash;
-    use array::{SpanSerde, ArrayTrait};
     use rules_erc1155::erc1155::erc1155;
     use rules_erc1155::erc1155::erc1155::ERC1155;
     use rules_erc1155::erc1155::erc1155::ERC1155::{InternalTrait as ERC1155HelperTrait};
     use rules_erc1155::erc1155::interface::{IERC1155, IERC1155Metadata};
     use rules_utils::introspection::src5::SRC5;
-    use rules_utils::introspection::interface::ISRC5;
 
     use jedinft::access::ownable;
     use jedinft::access::ownable::{Ownable, IOwnable};
@@ -397,72 +402,77 @@ mod InstaSwapPair {
         let mut max_currency_amounts: Array<u256> = max_currency_amounts_in.clone();
         let mut token_ids: Array<u256> = token_ids_in.clone();
         let mut token_amounts: Array<u256> = token_amounts_in.clone();
+
         let eventTokenIds: Array<u256> = token_ids.clone();
         let eventTokenAmounts: Array<u256> = token_amounts.clone();
         let mut eventCurrencyAmounts: Array<u256> = ArrayTrait::new();
+
         let mut erc1155_self = ERC1155::unsafe_new_contract_state();
 
         loop {
             match max_currency_amounts.pop_front() {
                 Option::Some(max_currency_amount) => {
+                    let token_id = *token_ids.at(0_usize);
+                    let token_amount = *token_amounts.at(0_usize);
+
                     let caller = starknet::get_caller_address();
                     let contract = starknet::get_contract_address();
                     let currency_address_ = self.currency_address.read();
                     let token_address_ = self.token_address.read();
 
-                    let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
-                    let lp_total_supply_ = self.lp_total_supplies.read(*token_ids.at(0_usize));
+                    let currency_reserve_ = self.currency_reserves.read(token_id);
+                    let lp_total_supply_ = self.lp_total_supplies.read(token_id);
                     let token_reserve_ = IERC1155Dispatcher {
                         contract_address: token_address_
-                    }.balance_of(contract, *token_ids.at(0_usize));
+                    }.balance_of(contract, token_id);
 
                     let mut lp_total_supply_new_ = 0.into();
 
                     let mut currency_amount_ = 0.into();
                     if (lp_total_supply_ == 0.into()) {
-                        currency_amount_ = *max_currency_amounts.at(0_usize);
+                        currency_amount_ = max_currency_amount;
+                        'test 0.8'.print();
 
-                        let square = (*max_currency_amounts.at(0_usize))
-                            * (*token_amounts.at(0_usize));
+                        let square = (max_currency_amount) * (token_amount);
                         let lp_total_supply_new_felt: felt252 = u256_sqrt(square).into();
                         let lp_total_supply_new_ = lp_total_supply_new_felt.into();
                         let lp_amount_for_lp_ = lp_total_supply_new_ - 1000.into();
+                        'test 0.81'.print();
+                        'caller address is '.print();
+                        caller.print();
+                        'currency_amount_ is '.print();
+                        currency_amount_.print();
+
                         IERC20Dispatcher {
                             contract_address: currency_address_
                         }.transfer_from(caller, contract, currency_amount_);
-
+                        'test 0.9'.print();
                         IERC1155Dispatcher {
                             contract_address: token_address_
                         }
                             .safe_transfer_from(
-                                caller,
-                                contract,
-                                *token_ids.at(0_usize),
-                                *token_amounts.at(0_usize),
-                                ArrayTrait::new().span()
+                                caller, contract, token_id, token_amount, ArrayTrait::new().span()
                             );
                         erc1155_self
-                            ._mint(
-                                caller,
-                                *token_ids.at(0_usize),
-                                lp_amount_for_lp_,
-                                ArrayTrait::new().span()
-                            );
+                            ._mint(caller, token_id, lp_amount_for_lp_, ArrayTrait::new().span());
+                        'test 0.91'.print();
 
                         // permanently lock the first MINIMUM_LIQUIDITY tokens
                         erc1155_self
                             ._mint(
                                 contract_address_const::<0>(),
-                                *token_ids.at(0_usize),
+                                token_id,
                                 1000.into(),
                                 ArrayTrait::new().span()
                             );
+                        'test 0.92'.print();
+
                         eventCurrencyAmounts.append(currency_amount_);
                     } else {
                         // Required price calc
                         // X/Y = dx/dy
                         // dx = X*dy/Y
-                        let numerator = currency_reserve_ * (*token_amounts.at(0_usize));
+                        let numerator = currency_reserve_ * (token_amount);
                         let currency_amount_ = numerator / token_reserve_;
                         assert(currency_amount_ <= max_currency_amount, 'amount too high');
 
@@ -477,32 +487,26 @@ mod InstaSwapPair {
                             contract_address: token_address_
                         }
                             .safe_transfer_from(
-                                caller,
-                                contract,
-                                *token_ids.at(0_usize),
-                                *token_amounts.at(0_usize),
-                                ArrayTrait::new().span()
+                                caller, contract, token_id, token_amount, ArrayTrait::new().span()
                             );
 
                         let lp_amount_ = lp_total_supply_ * currency_amount_ / currency_reserve_;
                         let lp_total_supply_new_ = lp_total_supply_ + lp_amount_;
 
                         // Mint LP tokens to caller
-                        erc1155_self
-                            ._mint(
-                                caller, *token_ids.at(0_usize), lp_amount_, ArrayTrait::new().span()
-                            );
+                        erc1155_self._mint(caller, token_id, lp_amount_, ArrayTrait::new().span());
                         eventCurrencyAmounts.append(currency_amount_);
                     }
-
+                    'test 1'.print();
                     // update lp_total_supplies
-                    self.lp_total_supplies.write(*token_ids.at(0_usize), lp_total_supply_new_);
+                    self.lp_total_supplies.write(token_id, lp_total_supply_new_);
 
                     let new_currency_reserve = currency_reserve_ + currency_amount_;
-                    self.currency_reserves.write(*token_ids.at(0_usize), new_currency_reserve);
+                    self.currency_reserves.write(token_id, new_currency_reserve);
 
-                    let new_token_reserve = token_reserve_ + *token_amounts.at(0_usize);
-                    self.token_reserves.write(*token_ids.at(0_usize), new_token_reserve);
+                    let new_token_reserve = token_reserve_ + token_amount;
+                    self.token_reserves.write(token_id, new_token_reserve);
+                    'test 2'.print();
 
                     token_ids.pop_front();
                     token_amounts.pop_front();
@@ -1010,9 +1014,8 @@ mod InstaSwapPair {
         // IERC165
 
         fn supports_interface(self: @ContractState, interface_id: felt252) -> bool {
-            let erc1155_self = ERC1155::unsafe_new_contract_state();
-
-            erc1155_self.supports_interface(:interface_id)
+            (interface_id == interface::IERC1155_RECEIVER_ID) | (interface_id == interface::IERC1155_ID) ||
+        (interface_id == interface::IERC1155_METADATA_ID)
         }
     }
 
@@ -1091,4 +1094,37 @@ mod InstaSwapPair {
             starknet::replace_class_syscall(new_implementation);
         }
     }
+
+  #[external(v0)]
+  impl ERC1155ReceiverImpl of interface::IERC1155Receiver<ContractState> {
+    fn on_erc1155_received(
+      ref self: ContractState,
+      operator: starknet::ContractAddress,
+      from: starknet::ContractAddress,
+      id: u256,
+      value: u256,
+      data: Span<felt252>
+    ) -> felt252 {
+      if (*data.at(0) == super::SUCCESS) {
+        interface::ON_ERC1155_RECEIVED_SELECTOR
+      } else {
+        0
+      }
+    }
+
+    fn on_erc1155_batch_received(
+      ref self: ContractState,
+      operator: starknet::ContractAddress,
+      from: starknet::ContractAddress,
+      ids: Span<u256>,
+      values: Span<u256>,
+      data: Span<felt252>
+    ) -> felt252 {
+      if (*data.at(0) == super::SUCCESS) {
+        interface::ON_ERC1155_BATCH_RECEIVED_SELECTOR
+      } else {
+        0
+      }
+    }
+  }
 }

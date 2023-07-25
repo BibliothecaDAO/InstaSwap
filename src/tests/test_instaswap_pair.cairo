@@ -80,12 +80,10 @@ fn AMOUNT_1() -> u256 {
 
 fn AMOUNT_2() -> u256 {
     100000.into()
-
 }
 
 fn AMOUNT_3() -> u256 {
     100000.into()
-
 }
 
 fn AMOUNT() -> u256 {
@@ -178,7 +176,9 @@ fn DATA(success: bool) -> Span<felt252> {
 //     erc1155
 // }
 
-fn setup_instaswap(currency_address: ContractAddress, token_address: ContractAddress, uri: Span<felt252>) -> ContractAddress {
+fn setup_instaswap(
+    currency_address: ContractAddress, token_address: ContractAddress, uri: Span<felt252>
+) -> ContractAddress {
     let mut calldata = ArrayTrait::new();
 
     uri.serialize(ref output: calldata);
@@ -271,21 +271,27 @@ fn test_constructor() {
 #[available_gas(20000000)]
 fn test_add_liquidity() {
     let owner = setup_receiver();
+    owner.print();
+    'end'.print();
+    starknet::testing::set_contract_address(owner);
     let mut block_timestamp: felt252 = 1690163135;
     starknet::testing::set_block_timestamp(block_timestamp.try_into().unwrap());
 
     let erc20_contract_address = setup_erc20();
     let mut erc20 = IERC20Dispatcher { contract_address: erc20_contract_address };
+    // mint token to owner
+    erc20.mint(owner, AMOUNT_1());
 
     let erc1155_contract_address = setup_erc1155();
     let mut erc1155 = ERC1155ABIDispatcher { contract_address: erc1155_contract_address };
-    
     // mint token to owner
     erc1155.mint(owner, TOKEN_ID_1(), AMOUNT_1(), DATA(true));
-    
+
     // assert balance
     assert(erc1155.balance_of(owner, TOKEN_ID_1()) == AMOUNT_1(), 'Balance should be AMOUNT_1()');
-    let instaswap_pair_address = setup_instaswap(erc20_contract_address, erc1155_contract_address, URI());
+    let instaswap_pair_address = setup_instaswap(
+        erc20_contract_address, erc1155_contract_address, URI()
+    );
     let mut instaswap_pair = IInstaSwapPairDispatcher { contract_address: instaswap_pair_address };
     // approve erc20 to instaswap_pair
     erc20.approve(instaswap_pair_address, AMOUNT_1());
@@ -299,6 +305,8 @@ fn test_add_liquidity() {
     let mut token_amounts = ArrayTrait::new();
     token_amounts.append(AMOUNT_1());
     // add liquidity
-    instaswap_pair.add_liquidity(max_currency_amounts, token_ids, token_amounts, block_timestamp + 100);
+    instaswap_pair
+        .add_liquidity(max_currency_amounts, token_ids, token_amounts, block_timestamp + 100);
+// assert balance
 
 }
