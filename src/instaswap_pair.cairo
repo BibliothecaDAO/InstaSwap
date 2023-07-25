@@ -157,6 +157,7 @@ mod InstaSwapPair {
     use rules_erc1155::erc1155::erc1155::ERC1155::{InternalTrait as ERC1155HelperTrait};
     use rules_erc1155::erc1155::interface::{IERC1155, IERC1155Metadata};
     use rules_utils::introspection::src5::SRC5;
+    use rules_utils::introspection::src5::SRC5::{InternalTrait as SRC5HelperTrait};
 
     use jedinft::access::ownable;
     use jedinft::access::ownable::{Ownable, IOwnable};
@@ -256,6 +257,9 @@ mod InstaSwapPair {
 
         let mut erc1155_self = ERC1155::unsafe_new_contract_state();
         erc1155_self.initializer(uri_: uri);
+
+        let mut src5_self = SRC5::unsafe_new_contract_state();
+        src5_self._register_interface(interface::IERC1155_RECEIVER_ID);
     }
 
     #[external(v0)]
@@ -1014,8 +1018,8 @@ mod InstaSwapPair {
         // IERC165
 
         fn supports_interface(self: @ContractState, interface_id: felt252) -> bool {
-            (interface_id == interface::IERC1155_RECEIVER_ID) | (interface_id == interface::IERC1155_ID) ||
-        (interface_id == interface::IERC1155_METADATA_ID)
+            let mut erc1155_self = ERC1155::unsafe_new_contract_state();
+            erc1155_self.supports_interface(:interface_id)
         }
     }
 
