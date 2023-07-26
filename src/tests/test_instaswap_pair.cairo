@@ -293,6 +293,7 @@ fn test_add_liquidity() {
         erc20_contract_address, erc1155_contract_address, URI()
     );
     let mut instaswap_pair = IInstaSwapPairDispatcher { contract_address: instaswap_pair_address };
+    let mut instaswap_erc1155 = ERC1155ABIDispatcher { contract_address: instaswap_pair_address };
     // approve erc20 to instaswap_pair
     erc20.approve(instaswap_pair_address, AMOUNT_1());
     // approve erc1155 to instaswap_pair
@@ -309,6 +310,18 @@ fn test_add_liquidity() {
     // add liquidity
     instaswap_pair
         .add_liquidity(max_currency_amounts, token_ids, token_amounts, block_timestamp + 100);
-// assert balance
+    // assert balance
+    assert(erc1155.balance_of(owner, TOKEN_ID_1()) == 0.into(), 'Balance should be zero');
+    assert(erc20.balance_of(owner) == 0.into(), 'Balance should be zero');
+    assert(
+        erc1155.balance_of(instaswap_pair_address, TOKEN_ID_1()) == AMOUNT_1(),
+        'Balance should be AMOUNT_1()'
+    );
+    assert(
+        erc20.balance_of(instaswap_pair_address) == AMOUNT_1(),
+        'Balance should be AMOUNT_1()'
+    );
+    assert(instaswap_erc1155.balance_of(owner, TOKEN_ID_1()) == AMOUNT_1() - 1000, 'Balance should be AMOUNT_1()');
+    
 
 }
