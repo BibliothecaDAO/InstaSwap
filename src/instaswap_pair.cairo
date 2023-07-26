@@ -37,7 +37,7 @@ trait IERC1155<TContractState> {
 
     fn balance_of_batch(
         self: @TContractState, accounts: Span<starknet::ContractAddress>, ids: Span<u256>
-    ) -> Array<u256>;
+    ) -> Span<u256>;
 
     fn is_approved_for_all(
         self: @TContractState,
@@ -451,23 +451,30 @@ mod InstaSwapPair {
                             contract_address: currency_address_
                         }.transfer_from(caller, contract, currency_amount_);
                         'test 0.9'.print();
+                        token_id.print();
+                        token_amount.print();
+                        let mut data = ArrayTrait::new();
+                        data.append(super::SUCCESS);
                         IERC1155Dispatcher {
                             contract_address: token_address_
                         }
                             .safe_transfer_from(
-                                caller, contract, token_id, token_amount, ArrayTrait::new().span()
+                                caller, contract, token_id, token_amount, data.span()
                             );
-                        erc1155_self
-                            ._mint(caller, token_id, lp_amount_for_lp_, ArrayTrait::new().span());
-                        'test 0.91'.print();
+                                                    'test 0.905'.print();
 
-                        // permanently lock the first MINIMUM_LIQUIDITY tokens
                         erc1155_self
-                            ._mint(
+                            ._mint(caller, token_id, lp_amount_for_lp_, data.span());
+                        'test 0.91'.print();
+                        let (ids, amounts) = erc1155_self._as_singleton_spans(token_id, 1000_u256);
+
+                        // permanently lock the first MINIMUM_LIQUIDITY tokens, since _mint not support mint to zero address, we have to do it manually
+                        erc1155_self
+                            ._update(Zeroable::zero(),
                                 contract_address_const::<0>(),
-                                token_id,
-                                1000.into(),
-                                ArrayTrait::new().span()
+                                ids,
+                                amounts,
+                                data.span()
                             );
                         'test 0.92'.print();
 
@@ -965,7 +972,7 @@ mod InstaSwapPair {
 
         fn balance_of_batch(
             self: @ContractState, accounts: Span<starknet::ContractAddress>, ids: Span<u256>
-        ) -> Array<u256> {
+        ) -> Span<u256> {
             let erc1155_self = ERC1155::unsafe_new_contract_state();
 
             erc1155_self.balance_of_batch(:accounts, :ids)

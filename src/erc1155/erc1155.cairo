@@ -8,7 +8,7 @@ trait ERC1155ABI<TContractState> {
 
     fn balance_of_batch(
         self: @TContractState, accounts: Span<starknet::ContractAddress>, ids: Span<u256>
-    ) -> Array<u256>;
+    ) -> Span<u256>;
 
     fn is_approved_for_all(
         self: @TContractState,
@@ -159,7 +159,7 @@ mod ERC1155 {
 
         fn balance_of_batch(
             self: @ContractState, accounts: Span<starknet::ContractAddress>, ids: Span<u256>
-        ) -> Array<u256> {
+        ) -> Span<u256> {
             assert(accounts.len() == ids.len(), 'ERC1155: bad accounts & ids len');
 
             let mut batch_balances = ArrayTrait::<u256>::new();
@@ -175,7 +175,7 @@ mod ERC1155 {
                 i += 1;
             };
 
-            batch_balances
+            batch_balances.span()
         }
 
         fn is_approved_for_all(
@@ -241,7 +241,7 @@ mod ERC1155 {
 
         fn balanceOfBatch(
             self: @ContractState, accounts: Span<starknet::ContractAddress>, ids: Span<u256>
-        ) -> Array<u256> {
+        ) -> Span<u256> {
             self.balance_of_batch(:accounts, :ids)
         }
 

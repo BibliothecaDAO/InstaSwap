@@ -304,6 +304,8 @@ fn test_add_liquidity() {
     token_ids.append(TOKEN_ID_1());
     let mut token_amounts = ArrayTrait::new();
     token_amounts.append(AMOUNT_1());
+
+
     // add liquidity
     instaswap_pair
         .add_liquidity(max_currency_amounts, token_ids, token_amounts, block_timestamp + 100);
