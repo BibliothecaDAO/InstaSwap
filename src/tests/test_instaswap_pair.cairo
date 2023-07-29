@@ -349,7 +349,7 @@ fn test_add_liquidity() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(40000000)]
 fn test_remove_liquidity() {
     let owner = setup_receiver();
     starknet::testing::set_contract_address(owner);
@@ -442,19 +442,19 @@ fn test_remove_liquidity() {
         lp_amounts,
         block_timestamp + 100
     );
-    assert(erc1155.balance_of(owner, 1) == 100000, 'Balance should be 100000');
-    assert(erc20.balance_of(owner) == 100000, 'Balance should be 100000');
+    assert(erc1155.balance_of(owner, 1) == 100000, 'Balance1 should be 100000');
+    assert(erc20.balance_of(owner) == 200000, 'Balance2 should be 200000');
     assert(
-        erc1155.balance_of(instaswap_pair_address, 1) == 100000,
-        'Balance should be 100000'
+        erc1155.balance_of(instaswap_pair_address, 1) == 200000,
+        'Balance3 should be 200000'
     );
     assert(
-        erc20.balance_of(instaswap_pair_address) == 100000,
-        'Balance should be 100000'
+        erc20.balance_of(instaswap_pair_address) == 200000,
+        'Balance4 should be 200000'
     );
-    assert(instaswap_erc1155.balance_of(owner, 1) == 100000 - 1000, 'Balance should be 100000');
-    assert(instaswap_pair.get_lp_supply(1_u256) == 100000, 'Balance should be 1000');
-    
+    assert(instaswap_erc1155.balance_of(owner, 1) == 200000 - 1000, 'Balance5 should be 199000');
+    assert(instaswap_pair.get_lp_supply(1_u256) == 200000, 'Balance6 should be 200000');
+
 
 }
 

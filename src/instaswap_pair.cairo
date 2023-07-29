@@ -505,7 +505,7 @@ mod InstaSwapPair {
                         // X/Y = dx/dy
                         // dx = X*dy/Y
                         let numerator = currency_reserve_ * (token_amount);
-                        let currency_amount_ = numerator / token_reserve_;
+                        currency_amount_ = numerator / token_reserve_;
                         assert(currency_amount_ <= max_currency_amount, 'amount too high');
                         // Transfer currency to contract
                         IERC20Dispatcher {
@@ -619,7 +619,7 @@ mod InstaSwapPair {
                     bought_currency_numerator.print();
                     'royalty_numerator'.print();
                     royalty_numerator.print();
-                    
+
                     assert(currency_amount_ >= min_currency_amount, 'insufficient currency amount');
                     assert(token_amount_ >= min_token_amount, 'insufficient token amount');
 
@@ -643,7 +643,6 @@ mod InstaSwapPair {
 
                     let lp_total_supply = lp_total_supply_ - lp_amount;
                     self.lp_total_supplies.write(token_id, lp_total_supply);
-
                     // Transfer currency to caller
                     IERC20Dispatcher {
                         contract_address: currency_address_
@@ -684,13 +683,13 @@ mod InstaSwapPair {
     fn _to_rounded_liquidity(
         ref self: ContractState,
         _token_id: u256,
-        _amount_pool: u256,
+        _lp_amount: u256,
         _token_reserve: u256,
         _currency_reserve: u256,
         _total_liquidity: u256,
     ) -> (u256, u256, u256, u256, u256) {
-        let mut currency_numerator: u256 = _amount_pool * _currency_reserve;
-        let mut token_numerator: u256 = _amount_pool * _token_reserve;
+        let mut currency_numerator: u256 = _lp_amount * _currency_reserve;
+        let mut token_numerator: u256 = _lp_amount * _token_reserve;
 
         // Convert all tokenProduct rest to currency
         let sold_token_numerator = token_numerator % _total_liquidity;
@@ -732,7 +731,12 @@ mod InstaSwapPair {
                 );
             }
         }
-
+        'currency_numerator'.print();
+        currency_numerator.print();
+        'token_numerator'.print();
+        token_numerator.print();
+        '_total_liquidity'.print();
+        _total_liquidity.print();
         // Calculate amounts
         (currency_numerator / _total_liquidity, token_numerator / _total_liquidity, 0, 0, 0)
     }
