@@ -597,9 +597,9 @@ mod InstaSwapPair {
                     let (
                         currency_amount_,
                         token_amount_,
-                        sold_token_numerator,
-                        bought_currency_numerator,
-                        royalty_numerator
+                        sold_token,
+                        bought_currency,
+                        royalty
                     ) =
                         _to_rounded_liquidity(
                         ref self,
@@ -613,20 +613,20 @@ mod InstaSwapPair {
                     currency_amount_.print();
                     'token_amount_'.print();
                     token_amount_.print();
-                    'sold_token_numerator'.print();
-                    sold_token_numerator.print();
-                    'bought_currency_numerator'.print();
-                    bought_currency_numerator.print();
-                    'royalty_numerator'.print();
-                    royalty_numerator.print();
+                    'sold_token'.print();
+                    sold_token.print();
+                    'bought_currency'.print();
+                    bought_currency.print();
+                    'royalty'.print();
+                    royalty.print();
 
                     assert(currency_amount_ >= min_currency_amount, 'insufficient currency amount');
                     assert(token_amount_ >= min_token_amount, 'insufficient token amount');
 
                     let eventObj = LiquidityRemovedEventObj {
                         currencyAmount: currency_amount_,
-                        soldTokenNumerator: sold_token_numerator,
-                        boughtCurrencyNumerator: bought_currency_numerator,
+                        soldTokenNumerator: sold_token,
+                        boughtCurrencyNumerator: bought_currency,
                         totalSupply: lp_total_supply_,
                     };
                     eventObjs.append(eventObj);
@@ -719,24 +719,16 @@ mod InstaSwapPair {
 
                 currency_numerator += bought_currency_numerator;
 
-                // Add royalty numerator (needs to be converted to ROYALTIES_DENOMINATOR)
-                royalty_numerator = royalty_numerator * 1000 / _total_liquidity;
 
                 return (
                     currency_numerator / _total_liquidity,
                     token_numerator / _total_liquidity,
-                    sold_token_numerator,
-                    bought_currency_numerator,
-                    royalty_numerator,
+                    sold_token_numerator / _total_liquidity,
+                    bought_currency_numerator / _total_liquidity,
+                    royalty_numerator / _total_liquidity
                 );
             }
         }
-        'currency_numerator'.print();
-        currency_numerator.print();
-        'token_numerator'.print();
-        token_numerator.print();
-        '_total_liquidity'.print();
-        _total_liquidity.print();
         // Calculate amounts
         (currency_numerator / _total_liquidity, token_numerator / _total_liquidity, 0, 0, 0)
     }

@@ -348,9 +348,120 @@ fn test_add_liquidity() {
 
 }
 
+// #[test]
+// #[available_gas(40000000)]
+// fn test_remove_liquidity() {
+//     let owner = setup_receiver();
+//     starknet::testing::set_contract_address(owner);
+//     let mut block_timestamp: felt252 = 1690163135;
+//     starknet::testing::set_block_timestamp(block_timestamp.try_into().unwrap());
+
+//     let erc20_contract_address = setup_erc20();
+//     let mut erc20 = IERC20Dispatcher { contract_address: erc20_contract_address };
+//     // mint token to owner
+//     erc20.mint(owner, 100000);
+
+//     let erc1155_contract_address = setup_erc1155();
+//     let mut erc1155 = ERC1155ABIDispatcher { contract_address: erc1155_contract_address };
+//     // mint token to owner
+//     erc1155.mint(owner, 1, 100000, DATA(true));
+
+//     // assert balance
+//     assert(erc1155.balance_of(owner, 1) == 100000, 'Balance should be 100000');
+//     let instaswap_pair_address = setup_instaswap(
+//         erc20_contract_address, erc1155_contract_address, URI()
+//     );
+//     let mut instaswap_pair = IInstaSwapPairDispatcher { contract_address: instaswap_pair_address };
+//     let mut instaswap_erc1155 = ERC1155ABIDispatcher { contract_address: instaswap_pair_address };
+//     // approve erc20 to instaswap_pair
+//     erc20.approve(instaswap_pair_address, 100000);
+//     // approve erc1155 to instaswap_pair
+//     erc1155.set_approval_for_all(instaswap_pair_address, true);
+
+//     let mut max_currency_amounts = ArrayTrait::new();
+//     max_currency_amounts.append(100000);
+//     let mut token_ids = ArrayTrait::new();
+//     token_ids.append(1);
+//     let mut token_amounts = ArrayTrait::new();
+//     token_amounts.append(100000);
+
+
+//     // add liquidity
+//     instaswap_pair
+//         .add_liquidity(max_currency_amounts, token_ids, token_amounts, block_timestamp + 100);
+//     // assert balance
+//     assert(erc1155.balance_of(owner, 1) == 0.into(), 'Balance should be zero');
+//     assert(erc20.balance_of(owner) == 0.into(), 'Balance should be zero');
+//     assert(
+//         erc1155.balance_of(instaswap_pair_address, 1) == 100000,
+//         'Balance should be 100000'
+//     );
+//     assert(
+//         erc20.balance_of(instaswap_pair_address) == 100000,
+//         'Balance should be 100000'
+//     );
+//     assert(instaswap_erc1155.balance_of(owner, 1) == 100000 - 1000, 'Balance should be 100000');
+//     assert(instaswap_pair.get_lp_supply(1_u256) == 100000, 'Balance should be 1000');
+//     // second add liquidity
+//     erc20.mint(owner, 300000);
+//     erc1155.mint(owner, 1, 200000, DATA(true));
+//     erc20.approve(instaswap_pair_address, 300000);
+//     erc1155.set_approval_for_all(instaswap_pair_address, true);
+//     max_currency_amounts = ArrayTrait::new();
+//     max_currency_amounts.append(300000);
+//     token_ids = ArrayTrait::new();
+//     token_ids.append(1);
+//     token_amounts = ArrayTrait::new();
+//     token_amounts.append(200000);
+//     instaswap_pair
+//         .add_liquidity(max_currency_amounts, token_ids, token_amounts, block_timestamp + 100);
+//     assert(erc1155.balance_of(owner, 1) == 0.into(), 'Balance not correct');
+//     assert(erc20.balance_of(owner) == 300000 - 200000, 'Balance should be zero');
+//     assert(
+//         erc1155.balance_of(instaswap_pair_address, 1) == 100000 + 200000, 'Balance should be 200000'
+//     );
+//     assert(
+//         erc20.balance_of(instaswap_pair_address) == 100000 + 200000,
+//         'Balance not correct 1.1'
+//     );
+//     assert(instaswap_erc1155.balance_of(owner, 1) == 100000 - 1000 + 200000, 'Balance not correct 2');
+
+//     // remove liquidity
+//     let mut min_currency_amounts = ArrayTrait::new();
+//     min_currency_amounts.append(100000);
+//     token_ids = ArrayTrait::new();
+//     token_ids.append(1);
+//     let mut min_token_amounts = ArrayTrait::new();
+//     min_token_amounts.append(100000);
+//     let mut lp_amounts = ArrayTrait::new();
+//     lp_amounts.append(100000);
+//     instaswap_pair.remove_liquidity(
+//         min_currency_amounts,
+//         token_ids,
+//         min_token_amounts,
+//         lp_amounts,
+//         block_timestamp + 100
+//     );
+//     assert(erc1155.balance_of(owner, 1) == 100000, 'Balance1 should be 100000');
+//     assert(erc20.balance_of(owner) == 200000, 'Balance2 should be 200000');
+//     assert(
+//         erc1155.balance_of(instaswap_pair_address, 1) == 200000,
+//         'Balance3 should be 200000'
+//     );
+//     assert(
+//         erc20.balance_of(instaswap_pair_address) == 200000,
+//         'Balance4 should be 200000'
+//     );
+//     assert(instaswap_erc1155.balance_of(owner, 1) == 200000 - 1000, 'Balance5 should be 199000');
+//     assert(instaswap_pair.get_lp_supply(1_u256) == 200000, 'Balance6 should be 200000');
+
+
+// }
+
+
 #[test]
 #[available_gas(40000000)]
-fn test_remove_liquidity() {
+fn test_remove_liquidity_with_to_rounded_liquidity() {
     let owner = setup_receiver();
     starknet::testing::set_contract_address(owner);
     let mut block_timestamp: felt252 = 1690163135;
@@ -359,82 +470,45 @@ fn test_remove_liquidity() {
     let erc20_contract_address = setup_erc20();
     let mut erc20 = IERC20Dispatcher { contract_address: erc20_contract_address };
     // mint token to owner
-    erc20.mint(owner, 100000);
+    erc20.mint(owner, 131452423241);
 
     let erc1155_contract_address = setup_erc1155();
     let mut erc1155 = ERC1155ABIDispatcher { contract_address: erc1155_contract_address };
     // mint token to owner
-    erc1155.mint(owner, 1, 100000, DATA(true));
+    erc1155.mint(owner, 1, 619, DATA(true));
 
-    // assert balance
-    assert(erc1155.balance_of(owner, 1) == 100000, 'Balance should be 100000');
     let instaswap_pair_address = setup_instaswap(
         erc20_contract_address, erc1155_contract_address, URI()
     );
     let mut instaswap_pair = IInstaSwapPairDispatcher { contract_address: instaswap_pair_address };
     let mut instaswap_erc1155 = ERC1155ABIDispatcher { contract_address: instaswap_pair_address };
     // approve erc20 to instaswap_pair
-    erc20.approve(instaswap_pair_address, 100000);
+    erc20.approve(instaswap_pair_address, 131452423241);
     // approve erc1155 to instaswap_pair
     erc1155.set_approval_for_all(instaswap_pair_address, true);
 
     let mut max_currency_amounts = ArrayTrait::new();
-    max_currency_amounts.append(100000);
+    max_currency_amounts.append(131452423241);
     let mut token_ids = ArrayTrait::new();
     token_ids.append(1);
     let mut token_amounts = ArrayTrait::new();
-    token_amounts.append(100000);
-
+    token_amounts.append(619);
 
     // add liquidity
     instaswap_pair
         .add_liquidity(max_currency_amounts, token_ids, token_amounts, block_timestamp + 100);
-    // assert balance
-    assert(erc1155.balance_of(owner, 1) == 0.into(), 'Balance should be zero');
-    assert(erc20.balance_of(owner) == 0.into(), 'Balance should be zero');
-    assert(
-        erc1155.balance_of(instaswap_pair_address, 1) == 100000,
-        'Balance should be 100000'
-    );
-    assert(
-        erc20.balance_of(instaswap_pair_address) == 100000,
-        'Balance should be 100000'
-    );
-    assert(instaswap_erc1155.balance_of(owner, 1) == 100000 - 1000, 'Balance should be 100000');
-    assert(instaswap_pair.get_lp_supply(1_u256) == 100000, 'Balance should be 1000');
-    // second add liquidity
-    erc20.mint(owner, 300000);
-    erc1155.mint(owner, 1, 200000, DATA(true));
-    erc20.approve(instaswap_pair_address, 300000);
-    erc1155.set_approval_for_all(instaswap_pair_address, true);
-    max_currency_amounts = ArrayTrait::new();
-    max_currency_amounts.append(300000);
-    token_ids = ArrayTrait::new();
-    token_ids.append(1);
-    token_amounts = ArrayTrait::new();
-    token_amounts.append(200000);
-    instaswap_pair
-        .add_liquidity(max_currency_amounts, token_ids, token_amounts, block_timestamp + 100);
-    assert(erc1155.balance_of(owner, 1) == 0.into(), 'Balance not correct');
-    assert(erc20.balance_of(owner) == 300000 - 200000, 'Balance should be zero');
-    assert(
-        erc1155.balance_of(instaswap_pair_address, 1) == 100000 + 200000, 'Balance should be 200000'
-    );
-    assert(
-        erc20.balance_of(instaswap_pair_address) == 100000 + 200000,
-        'Balance not correct 1.1'
-    );
-    assert(instaswap_erc1155.balance_of(owner, 1) == 100000 - 1000 + 200000, 'Balance not correct 2');
+    
+    assert(instaswap_erc1155.balance_of(owner, 1) == 9019479, 'Balance not correct 1');
 
     // remove liquidity
     let mut min_currency_amounts = ArrayTrait::new();
-    min_currency_amounts.append(100000);
+    min_currency_amounts.append(100);
     token_ids = ArrayTrait::new();
     token_ids.append(1);
     let mut min_token_amounts = ArrayTrait::new();
-    min_token_amounts.append(100000);
+    min_token_amounts.append(1);
     let mut lp_amounts = ArrayTrait::new();
-    lp_amounts.append(100000);
+    lp_amounts.append(131473);
     instaswap_pair.remove_liquidity(
         min_currency_amounts,
         token_ids,
@@ -442,19 +516,47 @@ fn test_remove_liquidity() {
         lp_amounts,
         block_timestamp + 100
     );
-    assert(erc1155.balance_of(owner, 1) == 100000, 'Balance1 should be 100000');
-    assert(erc20.balance_of(owner) == 200000, 'Balance2 should be 200000');
+    assert(erc1155.balance_of(owner, 1) == 9, 'Balance1 wrong');
+    assert(erc20.balance_of(owner) == 1920532902, 'Balance2 wrong');
     assert(
-        erc1155.balance_of(instaswap_pair_address, 1) == 200000,
-        'Balance3 should be 200000'
+        erc1155.balance_of(instaswap_pair_address, 1) == 610,
+        'Balance3 wrong'
     );
     assert(
-        erc20.balance_of(instaswap_pair_address) == 200000,
-        'Balance4 should be 200000'
+        erc20.balance_of(instaswap_pair_address) == 129531890339,
+        'Balance4 wrong'
     );
-    assert(instaswap_erc1155.balance_of(owner, 1) == 200000 - 1000, 'Balance5 should be 199000');
-    assert(instaswap_pair.get_lp_supply(1_u256) == 200000, 'Balance6 should be 200000');
+    assert(instaswap_erc1155.balance_of(owner, 1) == 8888006, 'Balance5 wrong');
+    assert(instaswap_pair.get_lp_supply(1_u256) == 8889006, 'Balance6 wrong');
 
+    // remove all liquidity
+    min_currency_amounts = ArrayTrait::new();
+    min_currency_amounts.append(100);
+    token_ids = ArrayTrait::new();
+    token_ids.append(1);
+    min_token_amounts = ArrayTrait::new();
+    min_token_amounts.append(1);
+    lp_amounts = ArrayTrait::new();
+    lp_amounts.append(8888006);
+    instaswap_pair.remove_liquidity(
+        min_currency_amounts,
+        token_ids,
+        min_token_amounts,
+        lp_amounts,
+        block_timestamp + 100
+    );
+
+    assert(erc1155.balance_of(owner, 1) == 618, 'Balance6 wrong');
+    assert(erc20.balance_of(owner) == 131444846305, 'Balance7 wrong');
+    assert(
+        erc1155.balance_of(instaswap_pair_address, 1) == 1,
+        'Balance8 wrong'
+    );
+    assert(
+        erc20.balance_of(instaswap_pair_address) == 7576936,
+        'Balance9 wrong'
+    );
+    assert(instaswap_erc1155.balance_of(owner, 1) == 0, 'Balance10 wrong');
+    assert(instaswap_pair.get_lp_supply(1_u256) == 1000, 'Balance11 wrong');
 
 }
-
