@@ -455,7 +455,6 @@ mod InstaSwapPair {
         loop {
             match max_currency_amounts.pop_front() {
                 Option::Some(max_currency_amount) => {
-                    '0.1'.print();
                     let token_id = *token_ids.at(0_usize);
                     let token_amount = *token_amounts.at(0_usize);
 
@@ -463,45 +462,32 @@ mod InstaSwapPair {
                     let contract = starknet::get_contract_address();
                     let currency_address_ = self.currency_address.read();
                     let token_address_ = self.token_address.read();
-                    '0.2'.print();
                     let currency_reserve_ = self.currency_reserves.read(token_id);
                     let mut lp_total_supply_ = self.lp_total_supplies.read(token_id);
                     let token_reserve_ = IERC1155Dispatcher {
                         contract_address: token_address_
                     }.balance_of(contract, token_id);
-                    '0.3'.print();
                     let mut lp_total_supply_new_: u256 = 0_u256;
 
                     let mut currency_amount_ = 0.into();
                     if (lp_total_supply_ == 0.into()) {
                         currency_amount_ = max_currency_amount;
-                        'test 0.8'.print();
 
                         lp_total_supply_new_ = u256_sqrt((max_currency_amount) * (token_amount)).into();
                         let lp_amount_for_lp_ = lp_total_supply_new_ - 1000_u256;
-                        'test 0.81'.print();
-                        'caller address is '.print();
-                        caller.print();
-                        'currency_amount_ is '.print();
-                        currency_amount_.print();
 
                         IERC20Dispatcher {
                             contract_address: currency_address_
                         }.transfer_from(caller, contract, currency_amount_);
-                        'test 0.9'.print();
-                        token_id.print();
-                        token_amount.print();
                         IERC1155Dispatcher {
                             contract_address: token_address_
                         }
                             .safe_transfer_from(
                                 caller, contract, token_id, token_amount, array![super::SUCCESS].span()
                             );
-                                                    'test 0.905'.print();
 
                         erc1155_self
                             ._mint(caller, token_id, lp_amount_for_lp_, array![super::SUCCESS].span());
-                        'test 0.91'.print();
                         let (ids, amounts) = erc1155_self._as_singleton_spans(token_id, 1000_u256);
 
                         // permanently lock the first MINIMUM_LIQUIDITY tokens, since _mint not support mint to zero address, we have to do it manually
@@ -512,7 +498,6 @@ mod InstaSwapPair {
                                 amounts,
                                 array![super::SUCCESS].span()
                             );
-                        'test 0.92'.print();
 
                         eventCurrencyAmounts.append(currency_amount_);
                     } else {
@@ -522,13 +507,10 @@ mod InstaSwapPair {
                         let numerator = currency_reserve_ * (token_amount);
                         let currency_amount_ = numerator / token_reserve_;
                         assert(currency_amount_ <= max_currency_amount, 'amount too high');
-                        currency_amount_.print();
-                        '0.5'.print();
                         // Transfer currency to contract
                         IERC20Dispatcher {
                             contract_address: currency_address_
                         }.transfer_from(caller, contract, currency_amount_);
-                        '0.6'.print();
                         // append to eventCurrencyAmounts for emit event
                         eventCurrencyAmounts.append(currency_amount_);
 
@@ -538,18 +520,14 @@ mod InstaSwapPair {
                             .safe_transfer_from(
                                 caller, contract, token_id, token_amount, array![super::SUCCESS].span()
                             );
-                        '0.7'.print();
 
                         let lp_amount_ = lp_total_supply_ * currency_amount_ / currency_reserve_;
                         let lp_total_supply_new_ = lp_total_supply_ + lp_amount_;
 
                         // Mint LP tokens to caller
                         erc1155_self._mint(caller, token_id, lp_amount_, array![super::SUCCESS].span());
-                        '0.8'.print();
                         eventCurrencyAmounts.append(currency_amount_);
                     }
-                    'test 1'.print();
-                    lp_total_supply_new_.print();
                     // update lp_total_supplies
                     self.lp_total_supplies.write(token_id, lp_total_supply_new_);
 
@@ -558,7 +536,6 @@ mod InstaSwapPair {
 
                     let new_token_reserve = token_reserve_ + token_amount;
                     self.token_reserves.write(token_id, new_token_reserve);
-                    'test 2'.print();
 
                     token_ids.pop_front();
                     token_amounts.pop_front();

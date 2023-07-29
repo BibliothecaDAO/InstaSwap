@@ -271,8 +271,6 @@ fn test_constructor() {
 #[available_gas(20000000)]
 fn test_add_liquidity() {
     let owner = setup_receiver();
-    owner.print();
-    'end'.print();
     starknet::testing::set_contract_address(owner);
     let mut block_timestamp: felt252 = 1690163135;
     starknet::testing::set_block_timestamp(block_timestamp.try_into().unwrap());
@@ -334,7 +332,6 @@ fn test_add_liquidity() {
     token_ids.append(1);
     token_amounts = ArrayTrait::new();
     token_amounts.append(200000);
-    'this is second'.print();
     instaswap_pair
         .add_liquidity(max_currency_amounts, token_ids, token_amounts, block_timestamp + 100);
     assert(erc1155.balance_of(owner, 1) == 0.into(), 'Balance not correct');
