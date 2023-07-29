@@ -346,7 +346,7 @@ fn test_add_liquidity() {
         erc20.balance_of(instaswap_pair_address) == 100000 + 200000,
         'Balance not correct 1.1'
     );
-    assert(instaswap_erc1155.balance_of(owner, 1) == 100000 - 100 + 200000, 'Balance not correct 2');
+    assert(instaswap_erc1155.balance_of(owner, 1) == 100000 - 1000 + 200000, 'Balance not correct 2');
 
 
 }
