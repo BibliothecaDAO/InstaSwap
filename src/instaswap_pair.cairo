@@ -1,4 +1,3 @@
-use alexandria::data_structures::stack::StackTrait;
 use starknet::ContractAddress;
 use array::ArrayTrait;
 const SUCCESS: felt252 = 'SUCCESS';
@@ -159,9 +158,9 @@ mod InstaSwapPair {
     use rules_utils::introspection::src5::SRC5;
     use rules_utils::introspection::src5::SRC5::{InternalTrait as SRC5HelperTrait};
 
-    use jedinft::access::ownable;
-    use jedinft::access::ownable::{Ownable, IOwnable};
-    use jedinft::access::ownable::Ownable::{
+    use rules_tokens::access::ownable;
+    use rules_tokens::access::ownable::{Ownable, IOwnable};
+    use rules_tokens::access::ownable::Ownable::{
         InternalTrait as OwnableHelperTrait, ModifierTrait as OwnableModifierTrait
     };
 
