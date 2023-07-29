@@ -123,6 +123,16 @@ trait IInstaSwapPair<TContractState> {
     fn get_royalty_fee_thousand(self: @TContractState) -> u256;
 
     fn get_royalty_fee_address(self: @TContractState) -> ContractAddress;
+
+    fn get_lp_supply(self: @TContractState, token_id: u256) -> u256;
+
+    fn set_royalty_info(
+            ref self: TContractState, royalty_fee_thousand_: u256, royalty_fee_address_: ContractAddress, 
+        );
+
+    fn set_lp_info(ref self: TContractState, lp_fee_thousand: u256);
+
+    fn upgrade(ref self: TContractState, new_implementation: starknet::ClassHash);
 }
 
 #[starknet::contract]
@@ -393,6 +403,36 @@ mod InstaSwapPair {
         fn get_royalty_fee_address(self: @ContractState) -> ContractAddress {
             return self.royalty_fee_address.read();
         }
+
+        fn get_lp_supply(self: @ContractState, token_id: u256) -> u256 {
+            return self.lp_total_supplies.read(token_id);
+        }
+
+        //########
+        // ADMIN #
+        //########
+        fn set_royalty_info(
+            ref self: ContractState, royalty_fee_thousand_: u256, royalty_fee_address_: ContractAddress, 
+        ) {
+            self._only_owner();
+
+            self.royalty_fee_thousand.write(royalty_fee_thousand_);
+            self.royalty_fee_address.write(royalty_fee_address_);
+        }
+
+        fn set_lp_info(ref self: ContractState, lp_fee_thousand: u256) {
+            self._only_owner();
+
+            self.lp_fee_thousand.write(lp_fee_thousand);
+        }
+
+        fn upgrade(ref self: ContractState, new_implementation: starknet::ClassHash) {
+            // Modifiers
+            self._only_owner();
+
+            // Body
+            self._upgrade(:new_implementation);
+        }
     }
 
 
@@ -424,22 +464,20 @@ mod InstaSwapPair {
                     let token_address_ = self.token_address.read();
 
                     let currency_reserve_ = self.currency_reserves.read(token_id);
-                    let lp_total_supply_ = self.lp_total_supplies.read(token_id);
+                    let mut lp_total_supply_ = self.lp_total_supplies.read(token_id);
                     let token_reserve_ = IERC1155Dispatcher {
                         contract_address: token_address_
                     }.balance_of(contract, token_id);
 
-                    let mut lp_total_supply_new_ = 0.into();
+                    let mut lp_total_supply_new_: u256 = 0_u256;
 
                     let mut currency_amount_ = 0.into();
                     if (lp_total_supply_ == 0.into()) {
                         currency_amount_ = max_currency_amount;
                         'test 0.8'.print();
 
-                        let square = (max_currency_amount) * (token_amount);
-                        let lp_total_supply_new_felt: felt252 = u256_sqrt(square).into();
-                        let lp_total_supply_new_ = lp_total_supply_new_felt.into();
-                        let lp_amount_for_lp_ = lp_total_supply_new_ - 1000.into();
+                        lp_total_supply_new_ = u256_sqrt((max_currency_amount) * (token_amount)).into();
+                        let lp_amount_for_lp_ = lp_total_supply_new_ - 1000_u256;
                         'test 0.81'.print();
                         'caller address is '.print();
                         caller.print();
@@ -485,7 +523,7 @@ mod InstaSwapPair {
                         let numerator = currency_reserve_ * (token_amount);
                         let currency_amount_ = numerator / token_reserve_;
                         assert(currency_amount_ <= max_currency_amount, 'amount too high');
-
+                        currency_amount_.print();
                         // Transfer currency to contract
                         IERC20Dispatcher {
                             contract_address: currency_address_
@@ -508,6 +546,7 @@ mod InstaSwapPair {
                         eventCurrencyAmounts.append(currency_amount_);
                     }
                     'test 1'.print();
+                    lp_total_supply_new_.print();
                     // update lp_total_supplies
                     self.lp_total_supplies.write(token_id, lp_total_supply_new_);
 
@@ -699,7 +738,7 @@ mod InstaSwapPair {
         }
 
         // Calculate amounts
-        (currency_numerator / _total_liquidity, token_numerator / _total_liquidity, 0, 0, 0, )
+        (currency_numerator / _total_liquidity, token_numerator / _total_liquidity, 0, 0, 0)
     }
 
 
@@ -1054,27 +1093,9 @@ mod InstaSwapPair {
         }
     }
 
-    fn get_lp_supply(self: @ContractState, token_id: u256) -> u256 {
-        return self.lp_total_supplies.read(token_id);
-    }
 
-    //########
-    // ADMIN #
-    //########
-    fn set_royalty_info(
-        ref self: ContractState, royalty_fee_thousand_: u256, royalty_fee_address_: ContractAddress, 
-    ) {
-        self._only_owner();
 
-        self.royalty_fee_thousand.write(royalty_fee_thousand_);
-        self.royalty_fee_address.write(royalty_fee_address_);
-    }
 
-    fn set_lp_info(ref self: ContractState, lp_fee_thousand: u256, ) {
-        self._only_owner();
-
-        self.lp_fee_thousand.write(lp_fee_thousand);
-    }
 
     #[generate_trait]
     impl ModifierImpl of ModifierTrait {
@@ -1084,20 +1105,7 @@ mod InstaSwapPair {
             ownable_self.assert_only_owner();
         }
     }
-    //
-    // Upgrade impl
-    //
 
-    #[generate_trait]
-    impl UpgradeImpl of UpgradeTrait {
-        fn upgrade(ref self: ContractState, new_implementation: starknet::ClassHash) {
-            // Modifiers
-            self._only_owner();
-
-            // Body
-            self._upgrade(:new_implementation);
-        }
-    }
     #[generate_trait]
     impl HelperImpl of HelperTrait {
         fn _upgrade(ref self: ContractState, new_implementation: starknet::ClassHash) {
