@@ -775,7 +775,8 @@ mod InstaSwapPair {
         let mut token_numerator: u256 = _lp_amount * _token_reserve;
 
         // Convert all tokenProduct rest to currency
-        let sold_token_numerator = token_numerator % _total_liquidity;
+        let intermediate = TmpU256Div::div(token_numerator , _total_liquidity);
+        let sold_token_numerator = token_numerator - intermediate * _total_liquidity;
 
         if sold_token_numerator != 0 {
             // The trade happens "after" funds are out of the pool
