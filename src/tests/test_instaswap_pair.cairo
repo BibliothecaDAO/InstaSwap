@@ -22,7 +22,7 @@ use super::utils;
 use rules_utils::utils::partial_eq::SpanPartialEq;
 use super::mocks::account::Account;
 use starknet::ContractAddress;
-use rules_tokens::access::ownable::{IOwnable, IOwnableDispatcher, IOwnableDispatcherTrait};
+use instaswap::access::ownable::{IOwnable, IOwnableDispatcher, IOwnableDispatcherTrait};
 use super::mocks::erc1155_receiver::{ERC1155Receiver, ERC1155NonReceiver, SUCCESS, FAILURE};
 use rules_erc1155::erc1155::erc1155::ERC1155::{
     ContractState as ERC1155ContractState, InternalTrait

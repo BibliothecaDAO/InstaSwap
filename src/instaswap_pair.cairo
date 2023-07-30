@@ -181,9 +181,9 @@ mod InstaSwapPair {
     use rules_utils::introspection::src5::SRC5;
     use rules_utils::introspection::src5::SRC5::{InternalTrait as SRC5HelperTrait};
 
-    use rules_tokens::access::ownable;
-    use rules_tokens::access::ownable::{Ownable, IOwnable};
-    use rules_tokens::access::ownable::Ownable::{
+    use instaswap::access::ownable;
+    use instaswap::access::ownable::{Ownable, IOwnable};
+    use instaswap::access::ownable::Ownable::{
         InternalTrait as OwnableHelperTrait, ModifierTrait as OwnableModifierTrait
     };
 
@@ -554,7 +554,8 @@ mod InstaSwapPair {
 
                         lp_total_supply_new_ = u256_sqrt((max_currency_amount) * (token_amount)).into();
                         let lp_amount_for_lp_ = lp_total_supply_new_ - 1000_u256;
-
+                        let mut data = ArrayTrait::new();
+                        data.append(super::SUCCESS);
                         IERC20Dispatcher {
                             contract_address: currency_address_
                         }.transfer_from(caller, contract, currency_amount_);
@@ -562,11 +563,11 @@ mod InstaSwapPair {
                             contract_address: token_address_
                         }
                             .safe_transfer_from(
-                                caller, contract, token_id, token_amount, array![super::SUCCESS].span()
+                                caller, contract, token_id, token_amount, data.span()
                             );
 
                         erc1155_self
-                            ._mint(caller, token_id, lp_amount_for_lp_, array![super::SUCCESS].span());
+                            ._mint(caller, token_id, lp_amount_for_lp_, data.span());
                         let (ids, amounts) = erc1155_self._as_singleton_spans(token_id, 1000_u256);
 
                         // permanently lock the first MINIMUM_LIQUIDITY tokens, since _mint not support mint to zero address, we have to do it manually
@@ -575,7 +576,7 @@ mod InstaSwapPair {
                                 contract_address_const::<0>(),
                                 ids,
                                 amounts,
-                                array![super::SUCCESS].span()
+                                data.span()
                             );
 
                         eventCurrencyAmounts.append(currency_amount_);
@@ -592,19 +593,21 @@ mod InstaSwapPair {
                         }.transfer_from(caller, contract, currency_amount_);
                         // append to eventCurrencyAmounts for emit event
                         eventCurrencyAmounts.append(currency_amount_);
-
+                        
+                        let mut data = ArrayTrait::new();
+                        data.append(super::SUCCESS);
                         IERC1155Dispatcher {
                             contract_address: token_address_
                         }
                             .safe_transfer_from(
-                                caller, contract, token_id, token_amount, array![super::SUCCESS].span()
+                                caller, contract, token_id, token_amount, data.span()
                             );
 
                         let lp_amount_ = lp_total_supply_ * currency_amount_ / currency_reserve_;
                         lp_total_supply_new_ = lp_total_supply_ + lp_amount_;
 
                         // Mint LP tokens to caller
-                        erc1155_self._mint(caller, token_id, lp_amount_, array![super::SUCCESS].span());
+                        erc1155_self._mint(caller, token_id, lp_amount_, data.span());
                         eventCurrencyAmounts.append(currency_amount_);
                     }
                     // update lp_total_supplies
@@ -715,7 +718,8 @@ mod InstaSwapPair {
                     IERC20Dispatcher {
                         contract_address: currency_address_
                     }.transfer(caller, currency_amount_);
-
+                        let mut data = ArrayTrait::new();
+                        data.append(super::SUCCESS);
                     IERC1155Dispatcher {
                         contract_address: token_address_
                     }
@@ -724,7 +728,7 @@ mod InstaSwapPair {
                             caller,
                             token_id,
                             token_amount_,
-                            array![super::SUCCESS].span()
+                            data.span()
                         );
 
                     token_ids.pop_front();
@@ -852,7 +856,8 @@ mod InstaSwapPair {
                     IERC20Dispatcher {
                         contract_address: currency_address_
                     }.transfer(self.royalty_fee_address.read(), royalty_);
-
+                        let mut data = ArrayTrait::new();
+                        data.append(super::SUCCESS);
                     // Transfer token to caller
                     IERC1155Dispatcher {
                         contract_address: token_address_
@@ -862,7 +867,7 @@ mod InstaSwapPair {
                             caller,
                             token_id,
                             token_amount,
-                            array![super::SUCCESS].span()
+                            data.span()
                         );
                     currencyAmounts.append(currency_amount_);
 
@@ -940,7 +945,8 @@ mod InstaSwapPair {
                     IERC20Dispatcher {
                         contract_address: currency_address_
                     }.transfer(self.royalty_fee_address.read(), royalty_);
-
+                        let mut data = ArrayTrait::new();
+                        data.append(super::SUCCESS);
                     // Transfer token from caller
                     IERC1155Dispatcher {
                         contract_address: token_address_
@@ -950,7 +956,7 @@ mod InstaSwapPair {
                             contract,
                             token_id,
                             token_amount,
-                            array![super::SUCCESS].span()
+                            data.span()
                         );
                     currencyAmounts.append(currency_amount_);
 

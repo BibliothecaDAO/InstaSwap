@@ -61,7 +61,7 @@ mod ERC1155 {
   // local
   use rules_erc1155::erc1155::interface;
   use rules_erc1155::erc1155::interface::IERC1155;
-  use rules_utils::utils::storage::StoreSpanFelt252;
+  use rules_utils::utils::storage::Felt252SpanStorageAccess;
 
   // Dispatchers
   use rules_erc1155::erc1155::dual_erc1155_receiver::{ DualCaseERC1155Receiver, DualCaseERC1155ReceiverTrait };
@@ -158,7 +158,7 @@ mod ERC1155 {
     ) -> Span<u256> {
       assert(accounts.len() == ids.len(), 'ERC1155: bad accounts & ids len');
 
-      let mut batch_balances = array![];
+      let mut batch_balances = ArrayTrait::<u256>::new();
 
       let mut i: usize = 0;
       let len = accounts.len();
@@ -350,12 +350,12 @@ mod ERC1155 {
     fn _burn(ref self: ContractState, from: starknet::ContractAddress, id: u256, amount: u256) {
       assert(from.is_non_zero(), 'ERC1155: burn from 0 addr');
       let (ids, amounts) = self._as_singleton_spans(id, amount);
-      self._update(:from, to: Zeroable::zero(), :ids, :amounts, data: array![].span());
+      self._update(:from, to: Zeroable::zero(), :ids, :amounts, data: ArrayTrait::new().span());
     }
 
     fn _burn_batch(ref self: ContractState, from: starknet::ContractAddress, ids: Span<u256>, amounts: Span<u256>) {
       assert(from.is_non_zero(), 'ERC1155: burn from 0 addr');
-      self._update(:from, to: Zeroable::zero(), :ids, :amounts, data: array![].span());
+      self._update(:from, to: Zeroable::zero(), :ids, :amounts, data: ArrayTrait::new().span());
     }
 
     // Setters
@@ -532,7 +532,13 @@ mod ERC1155 {
     // Utils
 
     fn _as_singleton_spans(self: @ContractState, element1: u256, element2: u256) -> (Span<u256>, Span<u256>) {
-      (array![element1].span(), array![element2].span())
+      let mut arr1 = ArrayTrait::<u256>::new();
+      let mut arr2 = ArrayTrait::<u256>::new();
+
+      arr1.append(element1);
+      arr2.append(element2);
+
+      (arr1.span(), arr2.span())
     }
   }
 }
