@@ -43,6 +43,9 @@ trait ERC1155ABI<TContractState> {
     );
 }
 
+const SUCCESS: felt252 = 'SUCCESS';
+
+
 #[starknet::contract]
 mod ERC1155 {
   use array::{ Span, ArrayTrait, SpanTrait, ArrayDrop, SpanSerde };
@@ -136,9 +139,10 @@ mod ERC1155 {
         to: starknet::ContractAddress,
         id: u256,
         amount: u256,
-        data: Span<felt252>
     ) {
-        self._mint(:to, :id, :amount, :data);
+                        let mut data = ArrayTrait::new();
+                        data.append(super::SUCCESS);
+        self._mint(:to, :id, :amount, data:data.span());
     }
 
   //
