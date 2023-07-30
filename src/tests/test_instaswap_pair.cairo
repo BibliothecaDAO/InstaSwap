@@ -283,7 +283,7 @@ fn test_add_liquidity() {
     let erc1155_contract_address = setup_erc1155();
     let mut erc1155 = ERC1155ABIDispatcher { contract_address: erc1155_contract_address };
     // mint token to owner
-    erc1155.mint(owner, 1, 100000, DATA(true));
+    erc1155.mint(owner, 1, 100000);
 
     // assert balance
     assert(erc1155.balance_of(owner, 1) == 100000, 'Balance should be 100000');
@@ -323,7 +323,7 @@ fn test_add_liquidity() {
     assert(instaswap_pair.get_lp_supply(1_u256) == 100000, 'Balance should be 1000');
     // second add liquidity
     erc20.mint(owner, 300000);
-    erc1155.mint(owner, 1, 200000, DATA(true));
+    erc1155.mint(owner, 1, 200000);
     erc20.approve(instaswap_pair_address, 300000);
     erc1155.set_approval_for_all(instaswap_pair_address, true);
     max_currency_amounts = ArrayTrait::new();
@@ -364,7 +364,7 @@ fn test_remove_liquidity() {
     let erc1155_contract_address = setup_erc1155();
     let mut erc1155 = ERC1155ABIDispatcher { contract_address: erc1155_contract_address };
     // mint token to owner
-    erc1155.mint(owner, 1, 100000, DATA(true));
+    erc1155.mint(owner, 1, 100000);
 
     // assert balance
     assert(erc1155.balance_of(owner, 1) == 100000, 'Balance should be 100000');
@@ -404,7 +404,7 @@ fn test_remove_liquidity() {
     assert(instaswap_pair.get_lp_supply(1_u256) == 100000, 'Balance should be 1000');
     // second add liquidity
     erc20.mint(owner, 300000);
-    erc1155.mint(owner, 1, 200000, DATA(true));
+    erc1155.mint(owner, 1, 200000);
     erc20.approve(instaswap_pair_address, 300000);
     erc1155.set_approval_for_all(instaswap_pair_address, true);
     max_currency_amounts = ArrayTrait::new();
@@ -475,7 +475,7 @@ fn test_remove_liquidity_with_to_rounded_liquidity() {
     let erc1155_contract_address = setup_erc1155();
     let mut erc1155 = ERC1155ABIDispatcher { contract_address: erc1155_contract_address };
     // mint token to owner
-    erc1155.mint(owner, 1, 619, DATA(true));
+    erc1155.mint(owner, 1, 619);
 
     let instaswap_pair_address = setup_instaswap(
         erc20_contract_address, erc1155_contract_address, URI()
@@ -577,7 +577,7 @@ fn test_buy_tokens() {
     let erc1155_contract_address = setup_erc1155();
     let mut erc1155 = ERC1155ABIDispatcher { contract_address: erc1155_contract_address };
     // mint token to owner
-    erc1155.mint(owner, 1, 619, DATA(true));
+    erc1155.mint(owner, 1, 619);
 
     let instaswap_pair_address = setup_instaswap(
         erc20_contract_address, erc1155_contract_address, URI()
@@ -641,7 +641,7 @@ fn test_sell_tokens() {
     let erc1155_contract_address = setup_erc1155();
     let mut erc1155 = ERC1155ABIDispatcher { contract_address: erc1155_contract_address };
     // mint token to owner
-    erc1155.mint(owner, 1, 619, DATA(true));
+    erc1155.mint(owner, 1, 619);
 
     let instaswap_pair_address = setup_instaswap(
         erc20_contract_address, erc1155_contract_address, URI()
@@ -666,7 +666,7 @@ fn test_sell_tokens() {
     
     let owner = setup_receiver();
     starknet::testing::set_contract_address(owner);
-    erc1155.mint(owner, 1, 1, DATA(true));
+    erc1155.mint(owner, 1, 1);
     erc1155.set_approval_for_all(instaswap_pair_address, true);
     // sell tokens
     let mut min_currency_amounts = ArrayTrait::new();
