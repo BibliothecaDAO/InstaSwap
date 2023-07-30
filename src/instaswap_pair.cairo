@@ -112,12 +112,24 @@ trait IInstaSwapPair<TContractState> {
 
     fn get_lp_fee_thousand(self: @TContractState) -> u256;
 
-    fn get_all_currency_amount_when_sell(
-        self: @TContractState, token_ids: Array<u256>, token_amounts: Array<u256>, 
+    fn get_currency_amount_when_sell(
+            self: @TContractState, token_id: u256, token_amount: u256, 
+        ) -> u256;
+    fn get_currency_amount_when_sell_batch(
+        self: @TContractState,
+        token_ids: Array<u256>,
+        token_amounts: Array<u256>,
+        currency_amounts: Array<u256>,
     ) -> Array<u256>;
 
-    fn get_all_currency_amount_when_buy(
-        self: @TContractState, token_ids: Array<u256>, token_amounts: Array<u256>, 
+    fn get_currency_amount_when_buy(
+            self: @TContractState, token_id: u256, token_amount: u256, 
+        ) -> u256;
+    fn get_currency_amount_when_buy_batch(
+        self: @TContractState,
+        token_ids: Array<u256>,
+        token_amounts: Array<u256>,
+        currency_amounts: Array<u256>,
     ) -> Array<u256>;
 
     fn get_royalty_fee_thousand(self: @TContractState) -> u256;
@@ -159,6 +171,7 @@ mod InstaSwapPair {
     use super::IERC1155Dispatcher;
     use super::IERC1155DispatcherTrait;
     use super::IERC20Dispatcher;
+    use super::IInstaSwapPair;
     use super::IERC20DispatcherTrait;
     use starknet::class_hash::ClassHash;
     use rules_erc1155::erc1155::erc1155;
@@ -272,7 +285,7 @@ mod InstaSwapPair {
     }
 
     #[external(v0)]
-    impl IInstaSwapPairImpl of super::IInstaSwapPair<ContractState> {
+    impl IInstaSwapPairImpl of IInstaSwapPair<ContractState> {
         //#####
         // LP #
         //#####
@@ -374,26 +387,92 @@ mod InstaSwapPair {
             return self.lp_fee_thousand.read();
         }
 
-        fn get_all_currency_amount_when_sell(
-            self: @ContractState, token_ids: Array<u256>, token_amounts: Array<u256>, 
-        ) -> Array<u256> {
-            let mut currency_amounts_ = ArrayTrait::new();
-
-            get_all_currency_amount_when_sell_loop(
-                self, token_ids, token_amounts, ref currency_amounts_, 
+        fn get_currency_amount_when_buy(
+            self: @ContractState, token_id: u256, token_amount: u256, 
+        ) -> u256 {
+            let currency_reserve = self.currency_reserves.read(token_id);
+            let token_reserve = self.token_reserves.read(token_id);
+            let lp_fee_thousand = self.lp_fee_thousand.read();
+            let currency_amount_sans_royal_ =  AMM::get_currency_amount_when_buy(
+                token_amount, currency_reserve, token_reserve, lp_fee_thousand,
             );
-            return currency_amounts_;
+            let royalty_ = get_royalty_with_amount(
+                self.royalty_fee_thousand.read(), currency_amount_sans_royal_
+            );
+            let currency_amount = currency_amount_sans_royal_ + royalty_;
+            return currency_amount;
         }
 
-        fn get_all_currency_amount_when_buy(
-            self: @ContractState, token_ids: Array<u256>, token_amounts: Array<u256>, 
+        fn get_currency_amount_when_buy_batch(
+            self: @ContractState,
+            token_ids: Array<u256>,
+            token_amounts: Array<u256>,
+            currency_amounts: Array<u256>,
         ) -> Array<u256> {
-            let mut currency_amounts_ = ArrayTrait::new();
+            assert(token_ids.len() == token_amounts.len(), 'not same length 1');
+            assert(token_ids.len() == currency_amounts.len(), 'not same length 2');
+            if (token_ids.len() == 0_usize) {
+                return ArrayTrait::new();
+            }
+            let mut i: usize = 0;
+            let mut currency_amounts = ArrayTrait::new();
+            let len = token_ids.len();
+            loop {
+                if (i >= len) {
+                break ();
+                }
+                let id = *token_ids.at(i);
+                let currency_amount_ = self.get_currency_amount_when_buy(
+                    id, 
+                    *token_amounts.at(i)
+                );
+                currency_amounts.append(currency_amount_);
+            };
+            return currency_amounts;
+        }
 
-            get_all_currency_amount_when_buy_loop(
-                self, token_ids, token_amounts, ref currency_amounts_, 
+        fn get_currency_amount_when_sell(
+            self: @ContractState, token_id: u256, token_amount: u256, 
+        ) -> u256 {
+            let currency_reserve = self.currency_reserves.read(token_id);
+            let token_reserve = self.token_reserves.read(token_id);
+            let lp_fee_thousand = self.lp_fee_thousand.read();
+            let currency_amount_sans_royal_ =  AMM::get_currency_amount_when_sell(
+                token_amount, currency_reserve, token_reserve, lp_fee_thousand,
             );
-            return currency_amounts_;
+            let royalty_ = get_royalty_with_amount(
+                self.royalty_fee_thousand.read(), currency_amount_sans_royal_
+            );
+            let currency_amount = currency_amount_sans_royal_ - royalty_;
+            return currency_amount;
+        }
+
+        fn get_currency_amount_when_sell_batch(
+            self: @ContractState,
+            token_ids: Array<u256>,
+            token_amounts: Array<u256>,
+            currency_amounts: Array<u256>,
+        ) -> Array<u256> {
+            assert(token_ids.len() == token_amounts.len(), 'not same length 1');
+            assert(token_ids.len() == currency_amounts.len(), 'not same length 2');
+            if (token_ids.len() == 0_usize) {
+                return ArrayTrait::new();
+            }
+            let mut i: usize = 0;
+            let mut currency_amounts = ArrayTrait::new();
+            let len = token_ids.len();
+            loop {
+                if (i >= len) {
+                break ();
+                }
+                let id = *token_ids.at(i);
+                let currency_amount_ = self.get_currency_amount_when_sell(
+                    id, 
+                    *token_amounts.at(i)
+                );
+                currency_amounts.append(currency_amount_);
+            };
+            return currency_amounts;
         }
 
         fn get_royalty_fee_thousand(self: @ContractState) -> u256 {
@@ -825,6 +904,7 @@ mod InstaSwapPair {
         let contract = starknet::get_contract_address();
         let currency_address_ = self.currency_address.read();
         let token_address_ = self.token_address.read();
+        let lp_fee_thousand_ = self.lp_fee_thousand.read();
         loop {
             match min_currency_amounts.pop_front() {
                 Option::Some(max_currency_amount) => {
@@ -834,7 +914,6 @@ mod InstaSwapPair {
                     let currency_reserve_ = self.currency_reserves.read(token_id);
                     let token_reserve_ = self.token_reserves.read(token_id);
 
-                    let lp_fee_thousand_ = self.lp_fee_thousand.read();
 
                     let currency_amount_sans_royal_ = AMM::get_currency_amount_when_sell(
                         token_amount,
@@ -905,67 +984,6 @@ mod InstaSwapPair {
 
         let royalty = royalty / 1000.into();
         return royalty;
-    }
-
-
-    fn get_all_currency_amount_when_sell_loop(
-        self: @ContractState,
-        token_ids_in: Array<u256>,
-        token_amounts_in: Array<u256>,
-        ref currency_amounts_: Array<u256>,
-    ) {
-        let mut token_ids: Array<u256> = token_ids_in.clone();
-        let mut token_amounts: Array<u256> = token_amounts_in.clone();
-        if (token_ids.len() == 0_usize) {
-            return ();
-        }
-        let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
-        let token_reserve_ = self.token_reserves.read(*token_ids.at(0_usize));
-        let lp_fee_thousand_ = self.lp_fee_thousand.read();
-        let currency_amount_sans_royal_ = AMM::get_currency_amount_when_sell(
-            *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
-        );
-        let royalty_ = get_royalty_with_amount(
-            self.royalty_fee_thousand.read(), currency_amount_sans_royal_
-        );
-        let currency_amount_ = currency_amount_sans_royal_ - royalty_;
-        currency_amounts_.append(currency_amount_);
-        token_ids.pop_front();
-        token_amounts.pop_front();
-        get_all_currency_amount_when_sell_loop(
-            self, token_ids, token_amounts, ref currency_amounts_, 
-        );
-    }
-
-
-    fn get_all_currency_amount_when_buy_loop(
-        self: @ContractState,
-        token_ids_in: Array<u256>,
-        token_amounts_in: Array<u256>,
-        ref currency_amounts_: Array<u256>,
-    ) {
-        let mut token_ids: Array<u256> = token_ids_in.clone();
-        let mut token_amounts: Array<u256> = token_amounts_in.clone();
-        if (token_ids.len() == 0_usize) {
-            return ();
-        }
-        let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
-        let token_reserve_ = self.token_reserves.read(*token_ids.at(0_usize));
-        let lp_fee_thousand_ = self.lp_fee_thousand.read();
-        let currency_amount_sans_royal_ = AMM::get_currency_amount_when_buy(
-            *token_amounts.at(0_usize), currency_reserve_, token_reserve_, lp_fee_thousand_, 
-        );
-        let royalty_ = get_royalty_with_amount(
-            self.royalty_fee_thousand.read(), currency_amount_sans_royal_
-        );
-
-        let currency_amount_ = currency_amount_sans_royal_ - royalty_;
-        currency_amounts_.append(currency_amount_);
-        token_ids.pop_front();
-        token_amounts.pop_front();
-        get_all_currency_amount_when_buy_loop(
-            self, token_ids, token_amounts, ref currency_amounts_, 
-        );
     }
 
     //########################
