@@ -573,19 +573,16 @@ mod InstaSwapPair {
         let mut eventTokenAmounts: Array<u256> = ArrayTrait::new();
         let mut eventObjs: Array<LiquidityRemovedEventObj> = ArrayTrait::new();
         let mut erc1155_self = ERC1155::unsafe_new_contract_state();
-
+        let caller = starknet::get_caller_address();
+        let contract = starknet::get_contract_address();
+        let currency_address_ = self.currency_address.read();
+        let token_address_ = self.token_address.read();
         loop {
             match min_currency_amounts.pop_front() {
                 Option::Some(min_currency_amount) => {
                     let token_id = *token_ids.at(0_usize);
                     let min_token_amount = *min_token_amounts.at(0_usize);
                     let lp_amount = *lp_amounts.at(0_usize);
-
-                    let caller = starknet::get_caller_address();
-                    let contract = starknet::get_contract_address();
-                    let currency_address_ = self.currency_address.read();
-                    let token_address_ = self.token_address.read();
-
                     let currency_reserve_ = self.currency_reserves.read(token_id);
                     let lp_total_supply_ = self.lp_total_supplies.read(token_id);
                     let token_reserve_ = IERC1155Dispatcher {
@@ -619,7 +616,9 @@ mod InstaSwapPair {
                     bought_currency.print();
                     'royalty'.print();
                     royalty.print();
-
+                    IERC20Dispatcher {
+                        contract_address: currency_address_
+                    }.transfer(self.royalty_fee_address.read(), royalty);
                     assert(currency_amount_ >= min_currency_amount, 'insufficient currency amount');
                     assert(token_amount_ >= min_token_amount, 'insufficient token amount');
 
@@ -783,7 +782,7 @@ mod InstaSwapPair {
                     // Royalty transfer
                     IERC20Dispatcher {
                         contract_address: currency_address_
-                    }.transfer_from(caller, self.royalty_fee_address.read(), royalty_);
+                    }.transfer(self.royalty_fee_address.read(), royalty_);
 
                     // Transfer token to caller
                     IERC1155Dispatcher {
