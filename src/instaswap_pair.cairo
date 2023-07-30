@@ -188,6 +188,24 @@ mod InstaSwapPair {
     };
 
     use instaswap::libraries::library::AMM;
+    
+
+    impl U256Div2 of Div<u256> {
+        fn div(lhs: u256, rhs: u256) -> u256 {
+            let mut lhs: u128 = lhs.try_into().unwrap();
+            let mut rhs: u128 = rhs.try_into().unwrap();
+            return (lhs / rhs).into();
+        }
+    }
+
+    #[generate_trait]
+    impl U256Div of TmpU256Div {
+        fn div(lhs: u256, rhs: u256) -> u256 {
+            let mut lhs: u128 = lhs.try_into().unwrap();
+            let mut rhs: u128 = rhs.try_into().unwrap();
+            return (lhs / rhs).into();
+        }
+    }
 
     #[storage]
     struct Storage {
@@ -585,7 +603,7 @@ mod InstaSwapPair {
                         // X/Y = dx/dy
                         // dx = X*dy/Y
                         let numerator = currency_reserve_ * (token_amount);
-                        currency_amount_ = numerator / token_reserve_;
+                        currency_amount_ = TmpU256Div::div(numerator, token_reserve_);
                         assert(currency_amount_ <= max_currency_amount, 'amount too high');
                         // Transfer currency to contract
                         IERC20Dispatcher {
@@ -602,8 +620,9 @@ mod InstaSwapPair {
                             .safe_transfer_from(
                                 caller, contract, token_id, token_amount, data.span()
                             );
+                        
 
-                        let lp_amount_ = lp_total_supply_ * currency_amount_ / currency_reserve_;
+                        let lp_amount_ = TmpU256Div::div((lp_total_supply_ * currency_amount_), currency_reserve_);
                         lp_total_supply_new_ = lp_total_supply_ + lp_amount_;
 
                         // Mint LP tokens to caller
@@ -769,10 +788,10 @@ mod InstaSwapPair {
         if sold_token_numerator != 0 {
             // The trade happens "after" funds are out of the pool
             // so we need to remove these funds before computing the rate
-            let virtual_token_reserve = (_token_reserve - (token_numerator / _total_liquidity))
+            let virtual_token_reserve = (_token_reserve - TmpU256Div::div(token_numerator , _total_liquidity))
                 * _total_liquidity;
             let virtual_currency_reserve = (_currency_reserve
-                - (currency_numerator / _total_liquidity))
+                - TmpU256Div::div(currency_numerator , _total_liquidity))
                 * _total_liquidity;
 
             // Skip process if any of the two reserves is left empty
@@ -793,16 +812,16 @@ mod InstaSwapPair {
 
 
                 return (
-                    currency_numerator / _total_liquidity,
-                    token_numerator / _total_liquidity,
-                    sold_token_numerator / _total_liquidity,
-                    bought_currency_numerator / _total_liquidity,
-                    royalty_numerator / _total_liquidity
+                    TmpU256Div::div(currency_numerator , _total_liquidity),
+                    TmpU256Div::div(token_numerator , _total_liquidity),
+                    TmpU256Div::div(sold_token_numerator , _total_liquidity),
+                    TmpU256Div::div(bought_currency_numerator , _total_liquidity),
+                    TmpU256Div::div(royalty_numerator , _total_liquidity)
                 );
             }
         }
         // Calculate amounts
-        (currency_numerator / _total_liquidity, token_numerator / _total_liquidity, 0, 0, 0)
+        (TmpU256Div::div(currency_numerator , _total_liquidity), TmpU256Div::div(token_numerator , _total_liquidity), 0, 0, 0)
     }
 
 
@@ -988,7 +1007,7 @@ mod InstaSwapPair {
     fn get_royalty_with_amount(royalty_fee_thousand: u256, amount_sans_royalty: u256) -> u256 {
         let royalty = amount_sans_royalty * royalty_fee_thousand;
 
-        let royalty = royalty / 1000.into();
+        let royalty = TmpU256Div::div(royalty , 1000.into());
         return royalty;
     }
 
