@@ -23,14 +23,6 @@ impl U256Div of TmpU256Div {
     }
 }
 
-    impl U256Div2 of Div<u256> {
-        fn div(lhs: u256, rhs: u256) -> u256 {
-            let mut lhs: u128 = lhs.try_into().unwrap();
-            let mut rhs: u128 = rhs.try_into().unwrap();
-            return (lhs / rhs).into();
-        }
-    }
-
 impl AMMImpl of AMM {
 
     // @dev it's almost same as swap currency for exact tokens. The currency represents ERC20, and token represents ERC1155 tokens. currency as input, token as output.

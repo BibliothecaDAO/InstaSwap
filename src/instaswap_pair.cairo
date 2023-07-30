@@ -190,14 +190,6 @@ mod InstaSwapPair {
     use instaswap::libraries::library::AMM;
     
 
-    impl U256Div2 of Div<u256> {
-        fn div(lhs: u256, rhs: u256) -> u256 {
-            let mut lhs: u128 = lhs.try_into().unwrap();
-            let mut rhs: u128 = rhs.try_into().unwrap();
-            return (lhs / rhs).into();
-        }
-    }
-
     #[generate_trait]
     impl U256Div of TmpU256Div {
         fn div(lhs: u256, rhs: u256) -> u256 {
