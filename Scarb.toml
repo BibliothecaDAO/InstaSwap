@@ -4,14 +4,9 @@ version = "0.1.0"
 description = "A minimal template for developing with Cairo 1.0"
 homepage = "https://github.com/auditless/cairo-template"
 
-# Uncomment if you want to use dependencies
-# Note: currently testing doesn't work with dependencies
-# [dependencies]
-# quaireaux = { git = "https://github.com/keep-starknet-strange/quaireaux.git" }
 [dependencies]
 starknet = ">=2.1.0-rc1"
 rules_utils = { git = "https://github.com/ruleslabs/starknet-utils.git" }
-rules_erc721 = { git = "https://github.com/ruleslabs/starknet-erc-721.git" }
 rules_erc1155 = { git = "https://github.com/ruleslabs/starknet-erc-1155.git" }
 rules_tokens = { git = "https://github.com/ruleslabs/core.git" }
 
