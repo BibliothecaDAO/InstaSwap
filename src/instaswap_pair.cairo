@@ -451,17 +451,17 @@ mod InstaSwapPair {
         let mut eventCurrencyAmounts: Array<u256> = ArrayTrait::new();
 
         let mut erc1155_self = ERC1155::unsafe_new_contract_state();
-
+        let caller = starknet::get_caller_address();
+        let contract = starknet::get_contract_address();
+        let currency_address_ = self.currency_address.read();
+        let token_address_ = self.token_address.read();
         loop {
             match max_currency_amounts.pop_front() {
                 Option::Some(max_currency_amount) => {
                     let token_id = *token_ids.at(0_usize);
                     let token_amount = *token_amounts.at(0_usize);
 
-                    let caller = starknet::get_caller_address();
-                    let contract = starknet::get_contract_address();
-                    let currency_address_ = self.currency_address.read();
-                    let token_address_ = self.token_address.read();
+
                     let currency_reserve_ = self.currency_reserves.read(token_id);
                     let mut lp_total_supply_ = self.lp_total_supplies.read(token_id);
                     let token_reserve_ = IERC1155Dispatcher {
@@ -606,16 +606,6 @@ mod InstaSwapPair {
                         currency_reserve_,
                         lp_total_supply_,
                     );
-                    'currency_amount_'.print();
-                    currency_amount_.print();
-                    'token_amount_'.print();
-                    token_amount_.print();
-                    'sold_token'.print();
-                    sold_token.print();
-                    'bought_currency'.print();
-                    bought_currency.print();
-                    'royalty'.print();
-                    royalty.print();
                     IERC20Dispatcher {
                         contract_address: currency_address_
                     }.transfer(self.royalty_fee_address.read(), royalty);
@@ -745,21 +735,21 @@ mod InstaSwapPair {
         let eventTokenIds: Array<u256> = token_ids.clone();
         let eventTokenAmounts: Array<u256> = token_amounts.clone();
         let mut currencyAmounts: Array<u256> = ArrayTrait::new();
+        let caller = starknet::get_caller_address();
+        let contract = starknet::get_contract_address();
+        let currency_address_ = self.currency_address.read();
+        let token_address_ = self.token_address.read();
+        let lp_fee_thousand_ = self.lp_fee_thousand.read();
         loop {
             match max_currency_amounts.pop_front() {
                 Option::Some(max_currency_amount) => {
-                    let caller = starknet::get_caller_address();
-                    let contract = starknet::get_contract_address();
-                    let currency_address_ = self.currency_address.read();
-                    let token_address_ = self.token_address.read();
-
-                    let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
-                    let token_reserve_ = self.token_reserves.read(*token_ids.at(0_usize));
-
-                    let lp_fee_thousand_ = self.lp_fee_thousand.read();
+                    let token_id = *token_ids.at(0_usize);
+                    let token_amount = *token_amounts.at(0_usize);
+                    let currency_reserve_ = self.currency_reserves.read(token_id);
+                    let token_reserve_ = self.token_reserves.read(token_id);
 
                     let currency_amount_sans_royal_ = AMM::get_currency_amount_when_buy(
-                        *token_amounts.at(0_usize),
+                        token_amount,
                         currency_reserve_,
                         token_reserve_,
                         lp_fee_thousand_,
@@ -773,7 +763,7 @@ mod InstaSwapPair {
 
                     // Update reserve 
                     let new_currency_reserve = currency_reserve_ + currency_amount_;
-                    self.currency_reserves.write(*token_ids.at(0_usize), new_currency_reserve);
+                    self.currency_reserves.write(token_id, new_currency_reserve);
 
                     // Transfer currency from caller
                     IERC20Dispatcher {
@@ -791,8 +781,8 @@ mod InstaSwapPair {
                         .safe_transfer_from(
                             contract,
                             caller,
-                            *token_ids.at(0_usize),
-                            *token_amounts.at(0_usize),
+                            token_id,
+                            token_amount,
                             array![super::SUCCESS].span()
                         );
                     currencyAmounts.append(currency_amount_);
@@ -831,21 +821,23 @@ mod InstaSwapPair {
         let eventTokenIds: Array<u256> = token_ids.clone();
         let eventTokenAmounts: Array<u256> = token_amounts.clone();
         let mut currencyAmounts: Array<u256> = ArrayTrait::new();
+        let caller = starknet::get_caller_address();
+        let contract = starknet::get_contract_address();
+        let currency_address_ = self.currency_address.read();
+        let token_address_ = self.token_address.read();
         loop {
             match min_currency_amounts.pop_front() {
                 Option::Some(max_currency_amount) => {
-                    let caller = starknet::get_caller_address();
-                    let contract = starknet::get_contract_address();
-                    let currency_address_ = self.currency_address.read();
-                    let token_address_ = self.token_address.read();
+                    let token_id = *token_ids.at(0_usize);
+                    let token_amount = *token_amounts.at(0_usize);
 
-                    let currency_reserve_ = self.currency_reserves.read(*token_ids.at(0_usize));
-                    let token_reserve_ = self.token_reserves.read(*token_ids.at(0_usize));
+                    let currency_reserve_ = self.currency_reserves.read(token_id);
+                    let token_reserve_ = self.token_reserves.read(token_id);
 
                     let lp_fee_thousand_ = self.lp_fee_thousand.read();
 
                     let currency_amount_sans_royal_ = AMM::get_currency_amount_when_sell(
-                        *token_amounts.at(0_usize),
+                        token_amount,
                         currency_reserve_,
                         token_reserve_,
                         lp_fee_thousand_,
@@ -859,7 +851,7 @@ mod InstaSwapPair {
 
                     // Update reserve
                     let new_currency_reserve = currency_reserve_ - currency_amount_;
-                    self.currency_reserves.write(*token_ids.at(0_usize), new_currency_reserve);
+                    self.currency_reserves.write(token_id, new_currency_reserve);
 
                     // Transfer currency to caller
                     IERC20Dispatcher {
@@ -877,8 +869,8 @@ mod InstaSwapPair {
                         .safe_transfer_from(
                             caller,
                             contract,
-                            *token_ids.at(0_usize),
-                            *token_amounts.at(0_usize),
+                            token_id,
+                            token_amount,
                             array![super::SUCCESS].span()
                         );
                     currencyAmounts.append(currency_amount_);
