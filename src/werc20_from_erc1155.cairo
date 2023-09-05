@@ -1,4 +1,5 @@
 
+
 #[starknet::contract]
 mod WERC20FromERC1155 {
 
@@ -20,6 +21,18 @@ mod WERC20FromERC1155 {
         ref self: ContractState
     ) {
 
+    }
+
+    #[external(v0)]
+    #[generate_trait]
+    impl WrapImpl of Wrap {
+        fn deposit(ref self: ContractState) {
+
+        }
+
+        fn withdraw(ref self: ContractState) {
+
+        }
     }
 
 
