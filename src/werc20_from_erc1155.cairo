@@ -3,6 +3,7 @@
 mod WERC20FromERC1155 {
 
     use openzeppelin::token::erc20::erc20::ERC20;
+    use openzeppelin::token::erc20::erc20::ERC20::InternalTrait;
     use openzeppelin::token::erc20::interface::IERC20;
     use openzeppelin::token::erc20::interface::IERC20CamelOnly;
     use starknet::ContractAddress;
@@ -85,53 +86,55 @@ mod WERC20FromERC1155 {
         }
     }
 
-    // #[external(v0)]
-    // impl ERC20CamelOnlyImpl of IERC20CamelOnly<ContractState> {
-    //     fn totalSupply(self: @ContractState) -> u256 {
-    //         ERC20Impl::total_supply(self)
-    //     }
+    #[external(v0)]
+    impl ERC20CamelOnlyImpl of IERC20CamelOnly<ContractState> {
+        fn totalSupply(self: @ContractState) -> u256 {
+            ERC20Impl::total_supply(self)
+        }
 
-    //     fn balanceOf(self: @ContractState, account: ContractAddress) -> u256 {
-    //         ERC20Impl::balance_of(self, account)
-    //     }
+        fn balanceOf(self: @ContractState, account: ContractAddress) -> u256 {
+            ERC20Impl::balance_of(self, account)
+        }
 
-    //     fn transferFrom(
-    //         ref self: ContractState,
-    //         sender: ContractAddress,
-    //         recipient: ContractAddress,
-    //         amount: u256
-    //     ) -> bool {
-    //         ERC20Impl::transfer_from(ref self, sender, recipient, amount)
-    //     }
-    // }
+        fn transferFrom(
+            ref self: ContractState,
+            sender: ContractAddress,
+            recipient: ContractAddress,
+            amount: u256
+        ) -> bool {
+            ERC20Impl::transfer_from(ref self, sender, recipient, amount)
+        }
+    }
 
-    // #[external(v0)]
-    // fn increase_allowance(
-    //     ref self: ContractState, spender: ContractAddress, added_value: u256
-    // ) -> bool {
-    //     self._increase_allowance(spender, added_value)
-    // }
+    #[external(v0)]
+    fn increase_allowance(
+        ref self: ContractState, spender: ContractAddress, added_value: u256
+    ) -> bool {
+        let mut erc20_self = ERC20::unsafe_new_contract_state();
+        erc20_self._increase_allowance(spender, added_value)
+    }
 
-    // #[external(v0)]
-    // fn increaseAllowance(
-    //     ref self: ContractState, spender: ContractAddress, addedValue: u256
-    // ) -> bool {
-    //     increase_allowance(ref self, spender, addedValue)
-    // }
+    #[external(v0)]
+    fn increaseAllowance(
+        ref self: ContractState, spender: ContractAddress, addedValue: u256
+    ) -> bool {
+        increase_allowance(ref self, spender, addedValue)
+    }
 
-    // #[external(v0)]
-    // fn decrease_allowance(
-    //     ref self: ContractState, spender: ContractAddress, subtracted_value: u256
-    // ) -> bool {
-    //     self._decrease_allowance(spender, subtracted_value)
-    // }
+    #[external(v0)]
+    fn decrease_allowance(
+        ref self: ContractState, spender: ContractAddress, subtracted_value: u256
+    ) -> bool {
+        let mut erc20_self = ERC20::unsafe_new_contract_state();
+        erc20_self._decrease_allowance(spender, subtracted_value)
+    }
 
-    // #[external(v0)]
-    // fn decreaseAllowance(
-    //     ref self: ContractState, spender: ContractAddress, subtractedValue: u256
-    // ) -> bool {
-    //     decrease_allowance(ref self, spender, subtractedValue)
-    // }
+    #[external(v0)]
+    fn decreaseAllowance(
+        ref self: ContractState, spender: ContractAddress, subtractedValue: u256
+    ) -> bool {
+        decrease_allowance(ref self, spender, subtractedValue)
+    }
 
 
 }
