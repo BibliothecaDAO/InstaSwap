@@ -8,26 +8,33 @@ mod WERC20FromERC1155 {
     use openzeppelin::token::erc20::interface::IERC20;
     use openzeppelin::token::erc20::interface::IERC20CamelOnly;
     use starknet::ContractAddress;
-    use starknet::get_caller_address;
+    use starknet::{ get_caller_address, get_contract_address};
     use zeroable::Zeroable;
+    use instaswap::erc1155::{IERC1155, IERC1155Dispatcher, IERC1155DispatcherTrait};
 
     #[storage]
     struct Storage {
-
+        erc1155_address: ContractAddress,
+        token_id: u256,
     }
 
     #[constructor]
     fn constructor(
-        ref self: ContractState
+        ref self: ContractState,
+        erc1155_address: ContractAddress,
+        token_id: u256,
     ) {
-
+        // TODO: check supports_interface
+        self.erc1155_address.write(erc1155_address);
+        self.token_id.write(token_id);
     }
 
     #[external(v0)]
     #[generate_trait]
     impl WrapImpl of Wrap {
-        fn deposit(ref self: ContractState) {
-
+        fn deposit(ref self: ContractState, amount: u256) {
+            let mut erc1155 = IERC1155Dispatcher { contract_address: self.erc1155_address.read() };
+            erc1155.safe_transfer_from(get_caller_address(), get_contract_address(), self.token_id.read(), amount, array!['SUCCESS'].span());
         }
 
         fn withdraw(ref self: ContractState) {
