@@ -6,9 +6,6 @@ homepage = "https://github.com/auditless/cairo-template"
 
 [dependencies]
 starknet = ">=2.1.0"
-rules_utils = { git = "https://github.com/ruleslabs/starknet-utils.git" }
-rules_erc1155 = { git = "https://github.com/ruleslabs/starknet-erc-1155.git" }
-rules_tokens = { git = "https://github.com/ruleslabs/core.git" }
 
 [[target.starknet-contract]]
 sierra = true
