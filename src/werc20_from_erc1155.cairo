@@ -1,5 +1,15 @@
 
+#[starknet::interface]
+trait BriqToken<TContractState> {
 
+    fn name(self: @TContractState) -> felt252;
+
+    fn symbol(self: @TContractState) -> felt252;
+
+    fn balanceOfMaterial_(ref self: TContractState, owner: felt252, material: felt252) -> felt252;
+
+    fn transferFT_(ref self: TContractState, sender: felt252, recipient: felt252, material: felt252, qty: felt252);
+}
 #[starknet::contract]
 mod WERC20FromERC1155 {
 
@@ -10,7 +20,8 @@ mod WERC20FromERC1155 {
     use starknet::ContractAddress;
     use starknet::{ get_caller_address, get_contract_address};
     use zeroable::Zeroable;
-    use instaswap::erc1155::{IERC1155, IERC1155Dispatcher, IERC1155DispatcherTrait};
+    use super::{BriqToken, BriqTokenDispatcher, BriqTokenDispatcherTrait};
+    // use instaswap::erc1155::{IERC1155, IERC1155Dispatcher, IERC1155DispatcherTrait};
 
     #[storage]
     struct Storage {
@@ -24,17 +35,25 @@ mod WERC20FromERC1155 {
         erc1155_address: ContractAddress,
         token_id: u256,
     ) {
-        // TODO: check supports_interface
         self.erc1155_address.write(erc1155_address);
         self.token_id.write(token_id);
+
+        let erc1155 = BriqTokenDispatcher { contract_address: erc1155_address };
+
+        let mut erc20_self = ERC20::unsafe_new_contract_state();
+        erc20_self.initializer('w' + erc1155.name(), 'w' + erc1155.symbol());
     }
 
     #[external(v0)]
     #[generate_trait]
     impl WrapImpl of Wrap {
         fn deposit(ref self: ContractState, amount: u256) {
-            let mut erc1155 = IERC1155Dispatcher { contract_address: self.erc1155_address.read() };
-            erc1155.safe_transfer_from(get_caller_address(), get_contract_address(), self.token_id.read(), amount, array!['SUCCESS'].span());
+            assert(amount > 0, 'Not positive');
+            let mut erc1155 = BriqTokenDispatcher { contract_address: self.erc1155_address.read() };
+            erc1155.transferFT_(get_caller_address().into(), get_contract_address().into(), self.token_id.read().try_into().unwrap(), amount.try_into().unwrap());
+            let mut erc20_self = ERC20::unsafe_new_contract_state();
+            erc20_self._mint(get_caller_address(), amount);
+
         }
 
         fn withdraw(ref self: ContractState) {
