@@ -56,8 +56,12 @@ mod WERC20FromERC1155 {
 
         }
 
-        fn withdraw(ref self: ContractState) {
-
+        fn withdraw(ref self: ContractState, amount: u256) {
+            assert(amount > 0, 'Not positive');
+            let mut erc1155 = BriqTokenDispatcher { contract_address: self.erc1155_address.read() };
+            erc1155.transferFT_(get_contract_address().into(), get_caller_address().into(), self.token_id.read().try_into().unwrap(), amount.try_into().unwrap());
+            let mut erc20_self = ERC20::unsafe_new_contract_state();
+            erc20_self._burn(get_caller_address(), amount);
         }
     }
 
