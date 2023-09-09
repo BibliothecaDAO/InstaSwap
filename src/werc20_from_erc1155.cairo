@@ -42,7 +42,7 @@ mod WERC20FromERC1155 {
             let mut erc1155 = IERC1155Dispatcher { contract_address: self.erc1155_address.read() };
             erc1155.safe_transfer_from(get_caller_address(), get_contract_address(), self.token_id.read(), amount, array!['SUCCESS'].span());
             let mut erc20_self = ERC20::unsafe_new_contract_state();
-            erc20_self._mint(get_caller_address(), amount);
+            erc20_self._mint(get_caller_address(), amount * 1000000000000000000);
 
         }
 
@@ -51,7 +51,7 @@ mod WERC20FromERC1155 {
             let mut erc1155 = IERC1155Dispatcher { contract_address: self.erc1155_address.read() };
             erc1155.safe_transfer_from(get_contract_address(), get_caller_address(), self.token_id.read(), amount, array!['SUCCESS'].span());
             let mut erc20_self = ERC20::unsafe_new_contract_state();
-            erc20_self._burn(get_caller_address(), amount);
+            erc20_self._burn(get_caller_address(), amount * 1000000000000000000);
         }
     }
 
@@ -78,7 +78,8 @@ mod WERC20FromERC1155 {
         }
 
         fn decimals(self: @ContractState) -> u8 {
-            18
+            let erc20_self = ERC20::unsafe_new_contract_state();
+            erc20_self.decimals()
         }
 
         fn total_supply(self: @ContractState) -> u256 {
