@@ -10,3 +10,5 @@ target
 .spr.yml
 node_modules
 .DS_Store
+
+.sdk/node_modules

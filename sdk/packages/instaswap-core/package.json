@@ -1,0 +1,26 @@
+{
+  "name": "@bibliothecadao/instaswap-core",
+  "version": "0.0.1",
+  "description": "Instaswap core",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  },
+  "author": "Loaf",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "devDependencies": {
+    "@types/elliptic": "^6.4.14",
+    "@types/jest": "^29.5.0",
+    "@types/mocha": "^10.0.1",
+    "bun-types": "^1.0.1",
+    "fetch-mock": "^9.11.0",
+    "jest": "^29.5.0",
+    "starknet": "^5.19.5",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.3"
+  },
+  "bin": {
+    "create-components": "./dist/bin/generateComponents.cjs"
+  }
+}
