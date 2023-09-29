@@ -5,7 +5,7 @@ import WERC20 from "./abi/werc20-abi.json";
 import ERC20 from "./abi/erc20-abi.json";
 import EkuboNFT from "./abi/ekubo-nft-abi.json";
 
-export abstract class Wrap {
+export class Wrap {
     public static ERC1155Contract: Contract;
     public static WERC20Contract: Contract;
     public static ERC20Contract: Contract;
