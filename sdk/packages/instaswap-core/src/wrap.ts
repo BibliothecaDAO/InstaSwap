@@ -26,7 +26,7 @@ export class Wrap {
     //     // 
     // }
 
-    public addLiquidity(depositAmount: number): Call[] {
+    public addLiquidity(erc1155Amount: number, erc20Amount: number): Call[] {
         const approveForAll: Call = {
             contractAddress: Wrap.ERC1155Contract.address,
             entrypoint: "setApprovalForAll",
@@ -41,7 +41,7 @@ export class Wrap {
             contractAddress: Wrap.WERC20Contract.address,
             entrypoint: "deposit",
             calldata: CallData.compile({
-                amount: cairo.uint256(depositAmount)
+                amount: cairo.uint256(erc1155Amount)
             })
         }
 
@@ -51,16 +51,25 @@ export class Wrap {
             entrypoint: "transfer",
             calldata: CallData.compile({
                 recipient: Wrap.EkuboNFTContract.address,
-                amount: cairo.uint256(BigInt(depositAmount) * (BigInt(10) ** BigInt(18)))
+                amount: cairo.uint256(BigInt(erc1155Amount) * (BigInt(10) ** BigInt(18))) // wrap token has 18 decimals
             })
         }
         // transfer erc20
+        const transferERC20: Call = {
+            contractAddress: Wrap.ERC20Contract.address,
+            entrypoint: "transfer",
+            calldata: CallData.compile({
+                recipient: Wrap.EkuboNFTContract.address,
+                amount: cairo.uint256(BigInt(erc20Amount))
+            })
+        }
         // mint_and_deposit
+        
         // clear werc20
         // clear erc20
         // cancel approval
 
-        return [approveForAll, depositToWERC20, transferWERC20];
+        return [approveForAll, depositToWERC20, transferWERC20, transferERC20];
     }
 }
 
