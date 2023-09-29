@@ -1,5 +1,6 @@
 import { useAccount, useConnectors } from '@starknet-react/core'
 import { useMemo } from 'react'
+import ButtonClick from './ButtonClick'
 
 function WalletConnected() {
   const { address } = useAccount()
@@ -14,6 +15,7 @@ function WalletConnected() {
     <div>
       <span>Connected: {shortenedAddress}</span>
       <button onClick={disconnect}>Disconnect</button>
+      <ButtonClick />
     </div>
   )
 }

@@ -11,7 +11,8 @@
   "dependencies": {
     "@starknet-react/core": "^1.0.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "@bibliothecadao/instaswap-core": "link:instaswap/packages/instaswap-core"
   },
   "devDependencies": {
     "@types/react": "^18.0.27",
