@@ -11,50 +11,21 @@ const ButtonClick = () => {
   const eth_address = useMemo(() => "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7", [])
   const ekubo_nft_address = useMemo(() => "0x73fa8432bf59f8ed535f29acfd89a7020758bda7be509e00dfed8a9fde12ddc", [])
 
-  // const approveForAll: Call = useMemo(() => ({
-  //   contractAddress: erc1155_address,
-  //   entrypoint: "setApprovalForAll",
-  //   calldata: CallData.compile({
-  //     operator: werc20_address,
-  //     approved: num.toCairoBool(true)
-  //   })
-  // }), [erc1155_address, werc20_address])
-  
-  // // wrap token
-  // const depositToWERC20: Call = {
-  //     contractAddress: werc20_address,
-  //     entrypoint: "deposit",
-  //     calldata: CallData.compile({
-  //       amount: cairo.uint256(100000n)
-  //     })
-  // }
-  
-  // // transfer werc20
-  // const transferWERC20: Call = {
-  //   contractAddress: werc20_address,
-  //   entrypoint: "transfer",
-  //   calldata: CallData.compile({
-  //     recipient: receiverAddress,
-  //     amount: cairo.uint256(100000n)
-  //   })
-  // }
-  // transfer erc20
-  // mint_and_deposit
-  // clear werc20
-  // clear erc20
-
-  // cancel approval
-
-
   const handleAddLiquidity = useCallback(() => {
+    debugger;
     let wrap = new Wrap(
       erc1155_address,
       werc20_address,
       eth_address,
       ekubo_nft_address,
     )
+    const fee = 0xcccc;
+    const tick_spacing = 0x01744e;
     
-    account?.execute(wrap.addLiquidity(1))
+    // 10^18
+    const eth_amount = 1n * 10n ** 14n;
+    
+    account?.execute(wrap.addLiquidity(1n, eth_amount, fee, tick_spacing))
   }, [account])
 
   return (

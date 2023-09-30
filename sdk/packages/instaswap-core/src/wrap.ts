@@ -26,7 +26,12 @@ export class Wrap {
     //     // 
     // }
 
-    public addLiquidity(erc1155Amount: number, erc20Amount: number): Call[] {
+    public addLiquidity(erc1155Amount: bigint, erc20Amount: bigint, fee: number, tick_spacing: number): Call[] {
+        // sort tokens
+        // TODO check length
+        const sortedTokens: Contract[] = [Wrap.ERC20Contract, Wrap.WERC20Contract].sort((a, b) => a.address.localeCompare(b.address));
+
+
         const approveForAll: Call = {
             contractAddress: Wrap.ERC1155Contract.address,
             entrypoint: "setApprovalForAll",
@@ -64,12 +69,57 @@ export class Wrap {
             })
         }
         // mint_and_deposit
-        
+        const mintAndDeposit: Call = {
+            contractAddress: Wrap.EkuboNFTContract.address,
+            entrypoint: "mint_and_deposit",
+            calldata: CallData.compile({
+                pool_key: {
+                    token0: sortedTokens[0].address,
+                    token1: sortedTokens[1].address,
+                    fee: fee,
+                    tick_spacing: tick_spacing,
+                    extension: 0,
+                },
+                bounds: {
+                    lower: {
+                        mag: 88727,
+                        sign: true,  
+                    },
+                    upper: {
+                        mag: 88727,
+                        sign: false,
+                    }
+                },
+                min_liquidity: 12,
+            })
+        }
         // clear werc20
+        const clearWERC20: Call = {
+            contractAddress: Wrap.EkuboNFTContract.address,
+            entrypoint: "clear",
+            calldata: CallData.compile({
+                token: Wrap.WERC20Contract.address
+            })
+        }
         // clear erc20
+        const clearERC20: Call = {
+            contractAddress: Wrap.EkuboNFTContract.address,
+            entrypoint: "clear",
+            calldata: CallData.compile({
+                token: Wrap.ERC20Contract.address
+            })
+        }
         // cancel approval
+        const cancelApproval: Call = {
+            contractAddress: Wrap.ERC1155Contract.address,
+            entrypoint: "setApprovalForAll",
+            calldata: CallData.compile({
+                operator: Wrap.WERC20Contract.address,
+                approved: num.toCairoBool(false)
+            })
+        }
 
-        return [approveForAll, depositToWERC20, transferWERC20, transferERC20];
+        return [approveForAll, depositToWERC20, transferWERC20, transferERC20, mintAndDeposit, clearWERC20, clearERC20, cancelApproval];
     }
 }
 
