@@ -1,23 +1,23 @@
-import { Contract, uint256, CallData, RawArgs, Call, num, cairo } from 'starknet'
+import { Contract, uint256, CallData, RawArgs, Call, num, cairo, BigNumberish } from 'starknet'
 
 import ERC1155 from "./abi/erc1155-abi.json";
 import WERC20 from "./abi/werc20-abi.json";
 import ERC20 from "./abi/erc20-abi.json";
-import EkuboNFT from "./abi/ekubo-nft-abi.json";
+import EkuboPosition from "./abi/ekubo-position-abi.json";
 import EkuboCore from "./abi/ekubo-core-abi.json";
 
 export class Wrap {
     public static ERC1155Contract: Contract;
     public static WERC20Contract: Contract;
     public static ERC20Contract: Contract;
-    public static EkuboNFTContract: Contract;
+    public static EkuboPosition: Contract;
     public static EkuboCoreContract: Contract;
 
-    constructor(ERC1155Address: string, WERC20Address: string, ERC20Address: string, EkuboNFTAddress: string, EkuboCoreAddress: string) {
+    constructor(ERC1155Address: string, WERC20Address: string, ERC20Address: string, EkuboPositionAddress: string, EkuboCoreAddress: string) {
         Wrap.ERC1155Contract = new Contract(ERC1155, ERC1155Address);
         Wrap.WERC20Contract = new Contract(WERC20, WERC20Address);
         Wrap.ERC20Contract = new Contract(ERC20, ERC20Address);
-        Wrap.EkuboNFTContract = new Contract(EkuboNFT, EkuboNFTAddress);
+        Wrap.EkuboPosition = new Contract(EkuboPosition, EkuboPositionAddress);
         Wrap.EkuboCoreContract = new Contract(EkuboCore, EkuboCoreAddress);
     }
 
@@ -29,7 +29,7 @@ export class Wrap {
     //     // 
     // }
 
-    public addLiquidity(erc1155Amount: bigint, erc20Amount: bigint, fee: number, tick_spacing: number): Call[] {
+    public addLiquidity(erc1155Amount: BigNumberish, erc20Amount: BigNumberish, fee: BigNumberish, tick_spacing: BigNumberish): Call[] {
         // sort tokens
         // TODO check length
         const sortedTokens: Contract[] = [Wrap.ERC20Contract, Wrap.WERC20Contract].sort((a, b) => a.address.localeCompare(b.address));
@@ -58,7 +58,7 @@ export class Wrap {
             contractAddress: Wrap.WERC20Contract.address,
             entrypoint: "transfer",
             calldata: CallData.compile({
-                recipient: Wrap.EkuboNFTContract.address,
+                recipient: Wrap.EkuboPosition.address,
                 amount: cairo.uint256(BigInt(erc1155Amount) * (BigInt(10) ** BigInt(18))) // wrap token has 18 decimals
             })
         }
@@ -67,13 +67,13 @@ export class Wrap {
             contractAddress: Wrap.ERC20Contract.address,
             entrypoint: "transfer",
             calldata: CallData.compile({
-                recipient: Wrap.EkuboNFTContract.address,
+                recipient: Wrap.EkuboPosition.address,
                 amount: cairo.uint256(BigInt(erc20Amount))
             })
         }
         // mint_and_deposit
         const mintAndDeposit: Call = {
-            contractAddress: Wrap.EkuboNFTContract.address,
+            contractAddress: Wrap.EkuboPosition.address,
             entrypoint: "mint_and_deposit",
             calldata: CallData.compile({
                 pool_key: {
@@ -98,7 +98,7 @@ export class Wrap {
         }
         // clear werc20
         const clearWERC20: Call = {
-            contractAddress: Wrap.EkuboNFTContract.address,
+            contractAddress: Wrap.EkuboPosition.address,
             entrypoint: "clear",
             calldata: CallData.compile({
                 token: Wrap.WERC20Contract.address
@@ -106,7 +106,7 @@ export class Wrap {
         }
         // clear erc20
         const clearERC20: Call = {
-            contractAddress: Wrap.EkuboNFTContract.address,
+            contractAddress: Wrap.EkuboPosition.address,
             entrypoint: "clear",
             calldata: CallData.compile({
                 token: Wrap.ERC20Contract.address
@@ -125,7 +125,7 @@ export class Wrap {
         return [approveForAll, depositToWERC20, transferWERC20, transferERC20, mintAndDeposit, clearWERC20, clearERC20, cancelApproval];
     }
 
-    public mayInitializePool(fee: number, tick_spacing: number, initial_tick: { mag: bigint, sign: boolean }): Call[] {
+    public mayInitializePool(fee: BigNumberish, tick_spacing: BigNumberish, initial_tick: { mag: BigNumberish, sign: boolean }): Call[] {
         // sort tokens
         // TODO check length
         const sortedTokens: Contract[] = [Wrap.ERC20Contract, Wrap.WERC20Contract].sort((a, b) => a.address.localeCompare(b.address));
