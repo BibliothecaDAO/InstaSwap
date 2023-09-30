@@ -20,7 +20,7 @@ const ButtonClick = () => {
     ekubo_core_address
   )
   const fee = 0xccccc;
-  const tick_spacing = 0x0174e;
+  const tick_spacing = 0x1;
 
   const handleAddLiquidity = useCallback(() => {
 
