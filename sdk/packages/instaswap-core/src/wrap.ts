@@ -4,18 +4,21 @@ import ERC1155 from "./abi/erc1155-abi.json";
 import WERC20 from "./abi/werc20-abi.json";
 import ERC20 from "./abi/erc20-abi.json";
 import EkuboNFT from "./abi/ekubo-nft-abi.json";
+import EkuboCore from "./abi/ekubo-core-abi.json";
 
 export class Wrap {
     public static ERC1155Contract: Contract;
     public static WERC20Contract: Contract;
     public static ERC20Contract: Contract;
     public static EkuboNFTContract: Contract;
+    public static EkuboCoreContract: Contract;
 
-    constructor(ERC1155Address: string, WERC20Address: string, ERC20Address: string, EkuboNFTAddress: string) {
+    constructor(ERC1155Address: string, WERC20Address: string, ERC20Address: string, EkuboNFTAddress: string, EkuboCoreAddress: string) {
         Wrap.ERC1155Contract = new Contract(ERC1155, ERC1155Address);
         Wrap.WERC20Contract = new Contract(WERC20, WERC20Address);
         Wrap.ERC20Contract = new Contract(ERC20, ERC20Address);
         Wrap.EkuboNFTContract = new Contract(EkuboNFT, EkuboNFTAddress);
+        Wrap.EkuboCoreContract = new Contract(EkuboCore, EkuboCoreAddress);
     }
 
     // public deposit = async (amount: bigint) => {
@@ -82,11 +85,11 @@ export class Wrap {
                 },
                 bounds: {
                     lower: {
-                        mag: 88727,
+                        mag: 130,
                         sign: true,  
                     },
                     upper: {
-                        mag: 88727,
+                        mag: 210,
                         sign: false,
                     }
                 },
@@ -121,5 +124,28 @@ export class Wrap {
 
         return [approveForAll, depositToWERC20, transferWERC20, transferERC20, mintAndDeposit, clearWERC20, clearERC20, cancelApproval];
     }
+
+    public mayInitializePool(fee: number, tick_spacing: number, initial_tick: { mag: bigint, sign: boolean }): Call[] {
+        // sort tokens
+        // TODO check length
+        const sortedTokens: Contract[] = [Wrap.ERC20Contract, Wrap.WERC20Contract].sort((a, b) => a.address.localeCompare(b.address));
+
+        const mayInitializePool: Call = {
+            contractAddress: Wrap.EkuboCoreContract.address,
+            entrypoint: "maybe_initialize_pool",
+            calldata: CallData.compile({
+                pool_key: {
+                    token0: sortedTokens[0].address,
+                    token1: sortedTokens[1].address,
+                    fee: fee,
+                    tick_spacing: tick_spacing,
+                    extension: 0,
+                },
+                initial_tick
+            })
+        }
+        return [mayInitializePool];
+    }
+
 }
 
