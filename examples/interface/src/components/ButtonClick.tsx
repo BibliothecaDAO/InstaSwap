@@ -2,6 +2,7 @@ import { useAccount, useConnectors } from '@starknet-react/core'
 import { useCallback, useMemo } from 'react'
 import { Contract, uint256, CallData, RawArgs, Call, num } from 'starknet'
 import { Wrap } from '@bibliothecadao/instaswap-core'
+import { FeeAmount } from '@bibliothecadao/instaswap-core'
 
 const ButtonClick = () => {
   const { address, account } = useAccount()
@@ -19,24 +20,22 @@ const ButtonClick = () => {
     ekubo_position_address,
     ekubo_core_address
   )
-  const fee = 0xccccc;
-  const tick_spacing = 0x1;
 
   const handleAddLiquidity = useCallback(() => {
 
 
     // 10^18
     const eth_amount = 1n * 10n ** 14n;
-
-    account?.execute(wrap.addLiquidity(1n, eth_amount, fee, tick_spacing))
+    debugger;
+    account?.execute(wrap.addLiquidity(1n, eth_amount, FeeAmount.MEDIUM, 0.0001, 0.0002))
   }, [account])
 
   const mayInitializePool = useCallback(() => {
     let initialize_tick = {
-      mag: 1n,
+      mag: 0n,
       sign: false
     }
-    account?.execute(wrap.mayInitializePool(fee, tick_spacing, initialize_tick))
+    account?.execute(wrap.mayInitializePool(FeeAmount.MEDIUM, initialize_tick))
   }, [account])
 
   return (
