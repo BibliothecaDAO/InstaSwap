@@ -1,10 +1,13 @@
 import { useAccount, useConnectors } from '@starknet-react/core'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Contract, uint256, CallData, RawArgs, Call, num } from 'starknet'
 import { Wrap } from '@bibliothecadao/instaswap-core'
 import { FeeAmount } from '@bibliothecadao/instaswap-core'
 
+
 const ButtonClick = () => {
+  const [lowerBound, setLowerBound] = useState(0);
+  const [upperBound, setUpperBound] = useState(0);
   const { address, account } = useAccount()
 
   const erc1155_address = useMemo(() => "0x03467674358c444d5868e40b4de2c8b08f0146cbdb4f77242bd7619efcf3c0a6", [])
@@ -22,13 +25,10 @@ const ButtonClick = () => {
   )
 
   const handleAddLiquidity = useCallback(() => {
-
-
-    // 10^18
-    const eth_amount = 1n * 10n ** 14n;
     debugger;
-    account?.execute(wrap.addLiquidity(1n, eth_amount, FeeAmount.MEDIUM, 0.0001, 0.0002))
-  }, [account])
+    const eth_amount = 1n * 10n ** 14n;
+    account?.execute(wrap.addLiquidity(1n, eth_amount, FeeAmount.MEDIUM, lowerBound, upperBound))
+  }, [account, lowerBound, upperBound])
 
   const mayInitializePool = useCallback(() => {
     let initialize_tick = {
@@ -36,16 +36,25 @@ const ButtonClick = () => {
       sign: false
     }
     account?.execute(wrap.mayInitializePool(FeeAmount.MEDIUM, initialize_tick))
-  }, [account])
+  }, [account, lowerBound, upperBound])
 
   return (
     <div>
       <div>
-        <button onClick={handleAddLiquidity}>add liquidity</button>
-      </div>
-      <div>
         <button onClick={mayInitializePool}>may initialize pool</button>
       </div>
+      <div>
+        <label htmlFor="lowerBound">Lower Bound:</label>
+        <input type="number" id="lowerBound" value={lowerBound} onChange={(e) => setLowerBound(parseFloat(e.target.value))} />
+      </div>
+      <div>
+        <label htmlFor="upperBound">Upper Bound:</label>
+        <input type="number" id="upperBound" value={upperBound} onChange={(e) => setUpperBound(parseFloat(e.target.value))} />
+      </div>
+      <div>
+        <button onClick={handleAddLiquidity}>add liquidity</button>
+      </div>
+
     </div>
   )
 }
