@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState, useEffect } from 'react'
 import { Contract, uint256, CallData, RawArgs, Call, num } from 'starknet'
 import { Wrap } from '@bibliothecadao/instaswap-core'
 import { FeeAmount } from '@bibliothecadao/instaswap-core'
-import { Provider, constants } from "starknet"
+import { Provider, constants, cairo } from "starknet"
 
 
 const ButtonClick = () => {
@@ -11,6 +11,7 @@ const ButtonClick = () => {
   const [upperBound, setUpperBound] = useState(0);
   const { address, account } = useAccount()
   const [balance, setBalance] = useState("0");
+  const [mintAmount, setMintAmount] = useState(0);
 
   const erc1155_address = useMemo(() => "0x03467674358c444d5868e40b4de2c8b08f0146cbdb4f77242bd7619efcf3c0a6", [])
   const werc20_address = useMemo(() => "0x06b09e4c92a08076222b392c77e7eab4af5d127188082713aeecbe9013003bf4", [])
@@ -29,7 +30,6 @@ const ButtonClick = () => {
   )
   const getERC1155Balance = useCallback(async () => {
     if (!address) return;
-    debugger;
     let b = await Wrap.getERC1155Balance(address, 1);
     setBalance(b.toString());
   }, [address, erc1155_address]);
@@ -43,7 +43,6 @@ const ButtonClick = () => {
   }, [getERC1155Balance]);
 
   const handleAddLiquidity = useCallback(() => {
-    debugger;
     const eth_amount = 1n * 10n ** 14n;
     account?.execute(wrap.addLiquidity(1n, eth_amount, FeeAmount.MEDIUM, lowerBound, upperBound))
   }, [account, lowerBound, upperBound])
@@ -55,6 +54,22 @@ const ButtonClick = () => {
     }
     account?.execute(wrap.mayInitializePool(FeeAmount.MEDIUM, initialize_tick))
   }, [account, lowerBound, upperBound])
+
+  const mintERC1155Token = useCallback(async () => {
+    if (!address) return;
+    const call: Call = {
+      contractAddress: Wrap.ERC1155Contract.address,
+      entrypoint: "mint",
+      calldata: CallData.compile({
+          to: address,
+          id: cairo.uint256(1),
+          amount: cairo.uint256(mintAmount),
+      })
+  }
+    account?.execute(
+      call
+    )
+  }, [address, erc1155_address, getERC1155Balance, mintAmount]);
 
   return (
     <div>
@@ -72,6 +87,14 @@ const ButtonClick = () => {
       <div>
         <p>ERC1155 Balance: {balance}</p>
       </div>
+      <div>
+        <label htmlFor="mintAmount">Mint Amount:</label>
+        <input type="number" id="mintAmount" value={mintAmount} onChange={(e) => setMintAmount(parseFloat(e.target.value))} />
+      </div>
+      <div>
+        <button onClick={mintERC1155Token}>mint ERC1155 token</button>
+      </div>
+
       <div>
         <button onClick={handleAddLiquidity}>add liquidity</button>
       </div>
