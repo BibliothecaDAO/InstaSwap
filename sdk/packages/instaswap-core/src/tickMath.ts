@@ -1,8 +1,13 @@
-import {Decimal} from 'decimal.js-light';
+import { Decimal } from 'decimal.js-light';
 import JSBI from 'jsbi';
 
 
-export class TickMath {
+export abstract class TickMath {
+
+    /**
+     * Cannot be constructed.
+     */
+    private constructor() { }
 
     public static getTickAtSqrtRatio(sqrt_ratio_x128: bigint): number {
         // A fixed point .128 number has at most 128 bits after the decimal, 
@@ -20,7 +25,7 @@ export class TickMath {
             .div(new Decimal('2').log())
             .toFixed(0);
         return Number(tick);
-        
+
     }
 
     public static getSqrtRatioAtTick(tick: number): bigint {
@@ -32,7 +37,7 @@ export class TickMath {
         // but this should be sufficient for just computing the price.
         Decimal.set({ precision: 78 });
 
-        const sqrt_ratio_x128 = 
+        const sqrt_ratio_x128 =
             new Decimal('1.000001')
                 .sqrt()
                 .pow(tick)

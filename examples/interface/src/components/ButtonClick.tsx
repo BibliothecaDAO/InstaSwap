@@ -12,6 +12,8 @@ const ButtonClick = () => {
   const { address, account } = useAccount()
   const [balance, setBalance] = useState("0");
   const [mintAmount, setMintAmount] = useState(0);
+  const [erc1155Amount, setAddLiquidityERC1155Amount] = useState(0);
+  const [ethAmount, setAddLiquidityEthAmount] = useState(0);
 
   const erc1155_address = useMemo(() => "0x03467674358c444d5868e40b4de2c8b08f0146cbdb4f77242bd7619efcf3c0a6", [])
   const werc20_address = useMemo(() => "0x06b09e4c92a08076222b392c77e7eab4af5d127188082713aeecbe9013003bf4", [])
@@ -43,9 +45,11 @@ const ButtonClick = () => {
   }, [getERC1155Balance]);
 
   const handleAddLiquidity = useCallback(() => {
-    const eth_amount = 1n * 10n ** 14n;
-    account?.execute(wrap.addLiquidity(1n, eth_amount, FeeAmount.MEDIUM, lowerBound, upperBound))
-  }, [account, lowerBound, upperBound])
+    if (!account) return;
+    const realERC1155Amount = erc1155Amount;
+    const realERC20Amount = ethAmount * (10 **18);
+    account?.execute(wrap.addLiquidity(realERC1155Amount, realERC20Amount, FeeAmount.MEDIUM, lowerBound, upperBound))
+  }, [account, lowerBound, upperBound, ethAmount, erc1155Amount])
 
   const mayInitializePool = useCallback(() => {
     let initialize_tick = {
@@ -77,15 +81,10 @@ const ButtonClick = () => {
         <button onClick={mayInitializePool}>may initialize pool</button>
       </div>
       <div>
-        <label htmlFor="lowerBound">Lower Bound:</label>
-        <input type="number" id="lowerBound" value={lowerBound} onChange={(e) => setLowerBound(parseFloat(e.target.value))} />
-      </div>
-      <div>
-        <label htmlFor="upperBound">Upper Bound:</label>
-        <input type="number" id="upperBound" value={upperBound} onChange={(e) => setUpperBound(parseFloat(e.target.value))} />
-      </div>
-      <div>
         <p>ERC1155 Balance: {balance}</p>
+      </div>
+      <div>
+        <h3> Mint ERC1155 </h3>
       </div>
       <div>
         <label htmlFor="mintAmount">Mint Amount:</label>
@@ -94,7 +93,25 @@ const ButtonClick = () => {
       <div>
         <button onClick={mintERC1155Token}>mint ERC1155 token</button>
       </div>
-
+      <div>
+        <h3> Add Liquidity </h3>
+      </div>
+      <div>
+        <label htmlFor="lowerBound">Lower Bound For ERC1155/ETH:</label>
+        <input type="number" id="lowerBound" value={lowerBound} onChange={(e) => setLowerBound(parseFloat(e.target.value))} />
+      </div>
+      <div>
+        <label htmlFor="upperBound">Upper Bound For ERC1155/ETH:</label>
+        <input type="number" id="upperBound" value={upperBound} onChange={(e) => setUpperBound(parseFloat(e.target.value))} />
+      </div>
+      <div>
+        <label htmlFor="erc1155 amount">ERC1155 amount:</label>
+        <input type="number" id="erc1155 amount" value={erc1155Amount} onChange={(e) => setAddLiquidityERC1155Amount(parseFloat(e.target.value))} />
+      </div>
+      <div>
+        <label htmlFor="eth amount">eth Amount:</label>
+        <input type="number" id="erc20 amount" value={ethAmount} onChange={(e) => setAddLiquidityEthAmount(parseFloat(e.target.value))} />
+      </div>
       <div>
         <button onClick={handleAddLiquidity}>add liquidity</button>
       </div>
