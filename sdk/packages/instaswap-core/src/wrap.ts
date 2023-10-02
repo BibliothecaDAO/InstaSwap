@@ -1,4 +1,4 @@
-import { Contract, uint256, CallData, RawArgs, Call, num, cairo, BigNumberish } from 'starknet'
+import { Contract, uint256, CallData, RawArgs, Call, num, cairo, BigNumberish, Provider } from 'starknet'
 
 import ERC1155 from "./abi/erc1155-abi.json";
 import WERC20 from "./abi/werc20-abi.json";
@@ -17,12 +17,12 @@ export class Wrap {
     public static EkuboPosition: Contract;
     public static EkuboCoreContract: Contract;
 
-    constructor(ERC1155Address: string, WERC20Address: string, ERC20Address: string, EkuboPositionAddress: string, EkuboCoreAddress: string) {
-        Wrap.ERC1155Contract = new Contract(ERC1155, ERC1155Address);
-        Wrap.WERC20Contract = new Contract(WERC20, WERC20Address);
-        Wrap.ERC20Contract = new Contract(ERC20, ERC20Address);
-        Wrap.EkuboPosition = new Contract(EkuboPosition, EkuboPositionAddress);
-        Wrap.EkuboCoreContract = new Contract(EkuboCore, EkuboCoreAddress);
+    constructor(ERC1155Address: string, WERC20Address: string, ERC20Address: string, EkuboPositionAddress: string, EkuboCoreAddress: string, provider: Provider) {
+        Wrap.ERC1155Contract = new Contract(ERC1155, ERC1155Address, provider);
+        Wrap.WERC20Contract = new Contract(WERC20, WERC20Address, provider);
+        Wrap.ERC20Contract = new Contract(ERC20, ERC20Address, provider);
+        Wrap.EkuboPosition = new Contract(EkuboPosition, EkuboPositionAddress, provider);
+        Wrap.EkuboCoreContract = new Contract(EkuboCore, EkuboCoreAddress, provider);
     }
 
     // public deposit = async (amount: bigint) => {
@@ -168,6 +168,12 @@ export class Wrap {
     public static getFeeX128(fee: FeeAmount): bigint {
         let feeX128 = BigInt(fee) * (2n ** 128n) / (10n ** 6n);
         return feeX128;
+    }
+
+    public static getERC1155Balance = async (address: string, tokenId: BigNumberish): Promise<number> => {
+        const tokenIdCairo = cairo.uint256(tokenId);
+        const balance = await Wrap.ERC1155Contract.balance_of(address, tokenIdCairo);
+        return balance
     }
 
 }
