@@ -11,15 +11,18 @@ const ButtonClick = () => {
   const [upperBound, setUpperBound] = useState(0);
   const { address, account } = useAccount()
   const [balance, setBalance] = useState("0");
+  const [currentPrice, setCurrentPrice] = useState(0);
   const [mintAmount, setMintAmount] = useState(0);
   const [erc1155Amount, setAddLiquidityERC1155Amount] = useState(0);
   const [ethAmount, setAddLiquidityEthAmount] = useState(0);
+  const [erc1155AmountForSwap, setERC1155AmountForSwap] = useState(0);
 
   const erc1155_address = useMemo(() => "0x03467674358c444d5868e40b4de2c8b08f0146cbdb4f77242bd7619efcf3c0a6", [])
   const werc20_address = useMemo(() => "0x06b09e4c92a08076222b392c77e7eab4af5d127188082713aeecbe9013003bf4", [])
   const eth_address = useMemo(() => "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7", [])
   const ekubo_position_address = useMemo(() => "0x73fa8432bf59f8ed535f29acfd89a7020758bda7be509e00dfed8a9fde12ddc", [])
   const ekubo_core_address = useMemo(() => "0x031e8a7ab6a6a556548ac85cbb8b5f56e8905696e9f13e9a858142b8ee0cc221", [])
+  const avnu_address = useMemo(() => "0x04270219d365d6b017231b52e92b3fb5d7c8378b05e9abc97724537a80e93b0f", [])
   const provider = new Provider({ sequencer: { network: constants.NetworkName.SN_GOERLI } });
 
   let wrap = new Wrap(
@@ -36,6 +39,12 @@ const ButtonClick = () => {
     setBalance(b.toString());
   }, [address, erc1155_address]);
 
+  const getCurrentPrice = useCallback(async () => {
+    if (!address) return;
+    let p = await Wrap.getCurrentPrice();
+    setCurrentPrice(p);
+  }, [address, erc1155_address]);
+
   useEffect(() => {
     getERC1155Balance();
     const interval = setInterval(() => {
@@ -50,6 +59,12 @@ const ButtonClick = () => {
     const realERC20Amount = ethAmount * (10 **18);
     account?.execute(wrap.addLiquidity(realERC1155Amount, realERC20Amount, FeeAmount.MEDIUM, lowerBound, upperBound))
   }, [account, lowerBound, upperBound, ethAmount, erc1155Amount])
+
+  const handleSwapFromERC1155ToERC20ByAVNU = useCallback(() => {
+    if (!account) return;
+    const realERC1155Amount = erc1155AmountForSwap;
+    account?.execute(wrap.swapFromERC1155ToERC20ByAVNU(realERC1155Amount, 0, avnu_address, account.address, FeeAmount.MEDIUM, 0.99, currentPrice))
+  }, [account, erc1155AmountForSwap, currentPrice, avnu_address])
 
   const mayInitializePool = useCallback(() => {
     let initialize_tick = {
@@ -84,6 +99,9 @@ const ButtonClick = () => {
         <p>ERC1155 Balance: {balance}</p>
       </div>
       <div>
+        <p>Current Price : {currentPrice}</p>
+      </div>
+      <div>
         <h3> Mint ERC1155 </h3>
       </div>
       <div>
@@ -97,23 +115,33 @@ const ButtonClick = () => {
         <h3> Add Liquidity </h3>
       </div>
       <div>
-        <label htmlFor="lowerBound">Lower Bound For ERC1155/ETH:</label>
+        <label htmlFor="lowerBound">Lower Price For ETH/ERC1155:</label>
         <input type="number" id="lowerBound" value={lowerBound} onChange={(e) => setLowerBound(parseFloat(e.target.value))} />
       </div>
       <div>
-        <label htmlFor="upperBound">Upper Bound For ERC1155/ETH:</label>
+        <label htmlFor="upperBound">Upper Price For ETH/ERC1155:</label>
         <input type="number" id="upperBound" value={upperBound} onChange={(e) => setUpperBound(parseFloat(e.target.value))} />
-      </div>
-      <div>
-        <label htmlFor="erc1155 amount">ERC1155 amount:</label>
-        <input type="number" id="erc1155 amount" value={erc1155Amount} onChange={(e) => setAddLiquidityERC1155Amount(parseFloat(e.target.value))} />
       </div>
       <div>
         <label htmlFor="eth amount">eth Amount:</label>
         <input type="number" id="erc20 amount" value={ethAmount} onChange={(e) => setAddLiquidityEthAmount(parseFloat(e.target.value))} />
       </div>
       <div>
+        <label htmlFor="erc1155 amount">ERC1155 amount:</label>
+        <input type="number" id="erc1155 amount" value={erc1155Amount} onChange={(e) => setAddLiquidityERC1155Amount(parseFloat(e.target.value))} />
+      </div>
+      <div>
         <button onClick={handleAddLiquidity}>add liquidity</button>
+      </div>
+      <div>
+        <h3> Swap From ERC1155 to ERC20 </h3>
+      </div>
+      <div>
+        <label htmlFor="erc1155 amount">ERC1155 amount:</label>
+        <input type="number" id="erc1155 amount" value={erc1155AmountForSwap} onChange={(e) => setERC1155AmountForSwap(parseFloat(e.target.value))} />
+      </div>
+      <div>
+        <button onClick={handleSwapFromERC1155ToERC20ByAVNU}>swap</button>
       </div>
 
     </div>
