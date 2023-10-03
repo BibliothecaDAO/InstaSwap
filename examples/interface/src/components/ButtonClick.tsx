@@ -41,8 +41,8 @@ const ButtonClick = () => {
 
   const getCurrentPrice = useCallback(async () => {
     if (!address) return;
-    let p = await Wrap.getCurrentPrice();
-    setCurrentPrice(p);
+    // let p = await Wrap.getCurrentPrice();
+    // setCurrentPrice(p);
   }, [address, erc1155_address]);
 
   useEffect(() => {

@@ -158,16 +158,33 @@ export class Wrap {
         if (slippage < 0 || slippage > 1) {
             throw new Error("slippage should be between 0 and 1");
         }
-        const erc20AmountIn = BigInt(erc1155AmountIn.toString()) * BigInt(10 ** 18);
+        const werc20AmountIn = BigInt(erc1155AmountIn.toString()) * BigInt(10 ** 18);
         Decimal.set({ precision: 78 });
         let sqrtRatioLimitX128 = (Wrap.ERC20Contract.address < Wrap.WERC20Contract.address) ? new Decimal(currentPrice / 300).sqrt().mul(new Decimal(2).pow(128)).toFixed(0) : new Decimal(currentPrice * 300).sqrt().mul(new Decimal(2).pow(128)).toFixed(0);
+        
+        const approveForAll: Call = {
+            contractAddress: Wrap.ERC1155Contract.address,
+            entrypoint: "setApprovalForAll",
+            calldata: CallData.compile({
+                operator: Wrap.WERC20Contract.address,
+                approved: num.toCairoBool(true)
+            })
+        }
+        // wrap token
+        const depositToWERC20: Call = {
+            contractAddress: Wrap.WERC20Contract.address,
+            entrypoint: "deposit",
+            calldata: CallData.compile({
+                amount: cairo.uint256(erc1155AmountIn)
+            })
+        }
         // approve WERC20
         const approveWERC20: Call = {
             contractAddress: Wrap.WERC20Contract.address,
             entrypoint: "approve",
             calldata: CallData.compile({
                 spender: aggregatorAddress,
-                amount: erc20AmountIn
+                amount: werc20AmountIn
             })
         }
         // swap
@@ -176,7 +193,7 @@ export class Wrap {
             entrypoint: "multi_route_swap",
             calldata: CallData.compile({
                 token_from_address: Wrap.WERC20Contract.address,
-                token_from_amount: erc20AmountIn,
+                token_from_amount: werc20AmountIn,
                 token_to_address: Wrap.ERC20Contract.address,
                 token_to_amount: minERC20AmountOut, // this is useless in avnu contract
                 token_to_min_amount: minERC20AmountOut,
@@ -189,21 +206,19 @@ export class Wrap {
                         token_to: Wrap.ERC20Contract.address,
                         exchange_address: Wrap.EkuboCoreContract.address,
                         percent: 100,
-                        additional_swap_params: {
-                            value: [
-                                sortedTokens[0].address,
-                                sortedTokens[1].address,
-                                Wrap.getFeeX128(fee),,  //fee for determin the pool_key
-                                1, // tick_spacing for determin the pool_key
-                                0, // extension for determin the pool_key
-                                sqrtRatioLimitX128  //sqrt_ratio_limit
-                            ],
-                        }
+                        additional_swap_params: [
+                            sortedTokens[0].address,
+                            sortedTokens[1].address,
+                            Wrap.getFeeX128(fee),  //fee for determin the pool_key
+                            1, // tick_spacing for determin the pool_key
+                            0, // extension for determin the pool_key
+                            sqrtRatioLimitX128  //sqrt_ratio_limit
+                        ],
                     }
                 ]
             })
         }
-        return [approveWERC20, multiRouteSwap];
+        return [approveForAll, depositToWERC20, approveWERC20,];
 
     }
 
