@@ -184,7 +184,7 @@ export class Wrap {
             entrypoint: "approve",
             calldata: CallData.compile({
                 spender: aggregatorAddress,
-                amount: werc20AmountIn
+                amount: cairo.uint256(werc20AmountIn)
             })
         }
         // swap
@@ -218,7 +218,7 @@ export class Wrap {
                 ]
             })
         }
-        return [approveForAll, depositToWERC20, approveWERC20,];
+        return [approveForAll, depositToWERC20, approveWERC20,multiRouteSwap];
 
     }
 
