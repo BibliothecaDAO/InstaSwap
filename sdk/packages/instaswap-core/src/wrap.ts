@@ -187,38 +187,39 @@ export class Wrap {
                 amount: cairo.uint256(werc20AmountIn)
             })
         }
+        let tmp = {
+            token_from_address: Wrap.WERC20Contract.address,
+            token_from_amount: cairo.uint256(werc20AmountIn),
+            token_to_address: Wrap.ERC20Contract.address,
+            token_to_amount: cairo.uint256(minERC20AmountOut), // this is useless in avnu contract
+            token_to_min_amount: cairo.uint256(minERC20AmountOut),
+            beneficiary: userAddress,
+            integrator_fee_amount_bps: 0,
+            integrator_fee_recipient: 0,
+            routes: [
+                {
+                    token_from: Wrap.WERC20Contract.address,
+                    token_to: Wrap.ERC20Contract.address,
+                    exchange_address: Wrap.EkuboCoreContract.address,
+                    percent: 100,
+                    additional_swap_params: [
+                        sortedTokens[0].address,
+                        sortedTokens[1].address,
+                        Wrap.getFeeX128(fee),  //fee for determin the pool_key
+                        1, // tick_spacing for determin the pool_key
+                        0, // extension for determin the pool_key
+                        363034526046013994104916607590000000000000000000001n  //sqrt_ratio_limit
+                    ],
+                }
+            ]
+        };
         // swap
         const multiRouteSwap: Call = {
             contractAddress: aggregatorAddress,
             entrypoint: "multi_route_swap",
-            calldata: CallData.compile({
-                token_from_address: Wrap.WERC20Contract.address,
-                token_from_amount: werc20AmountIn,
-                token_to_address: Wrap.ERC20Contract.address,
-                token_to_amount: minERC20AmountOut, // this is useless in avnu contract
-                token_to_min_amount: minERC20AmountOut,
-                beneficiary: userAddress,
-                integrator_fee_amount_bps: 0,
-                integrator_fee_recipient: 0,
-                routes: [
-                    {
-                        token_from: Wrap.WERC20Contract.address,
-                        token_to: Wrap.ERC20Contract.address,
-                        exchange_address: Wrap.EkuboCoreContract.address,
-                        percent: 100,
-                        additional_swap_params: [
-                            sortedTokens[0].address,
-                            sortedTokens[1].address,
-                            Wrap.getFeeX128(fee),  //fee for determin the pool_key
-                            1, // tick_spacing for determin the pool_key
-                            0, // extension for determin the pool_key
-                            sqrtRatioLimitX128  //sqrt_ratio_limit
-                        ],
-                    }
-                ]
-            })
+            calldata: CallData.compile(tmp)
         }
-        return [approveForAll, depositToWERC20, approveWERC20,multiRouteSwap];
+        return [approveForAll, depositToWERC20, approveWERC20, multiRouteSwap];
 
     }
 

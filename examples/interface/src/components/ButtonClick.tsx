@@ -22,7 +22,7 @@ const ButtonClick = () => {
   const eth_address = useMemo(() => "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7", [])
   const ekubo_position_address = useMemo(() => "0x73fa8432bf59f8ed535f29acfd89a7020758bda7be509e00dfed8a9fde12ddc", [])
   const ekubo_core_address = useMemo(() => "0x031e8a7ab6a6a556548ac85cbb8b5f56e8905696e9f13e9a858142b8ee0cc221", [])
-  const avnu_address = useMemo(() => "0x04270219d365d6b017231b52e92b3fb5d7c8378b05e9abc97724537a80e93b0f", [])
+  const avnu_address = useMemo(() => "0x07e36202ace0ab52bf438bd8a8b64b3731c48d09f0d8879f5b006384c2f35032", [])
   const provider = new Provider({ sequencer: { network: constants.NetworkName.SN_GOERLI } });
 
   let wrap = new Wrap(
@@ -63,7 +63,7 @@ const ButtonClick = () => {
   const handleSwapFromERC1155ToERC20ByAVNU = useCallback(() => {
     if (!account) return;
     const realERC1155Amount = erc1155AmountForSwap;
-    account?.execute(wrap.swapFromERC1155ToERC20ByAVNU(realERC1155Amount, 0, avnu_address, account.address, FeeAmount.MEDIUM, 0.99, currentPrice))
+    account?.execute(wrap.swapFromERC1155ToERC20ByAVNU(realERC1155Amount, 1313331313, avnu_address, account.address, FeeAmount.MEDIUM, 0.99, currentPrice))
   }, [account, erc1155AmountForSwap, currentPrice, avnu_address])
 
   const mayInitializePool = useCallback(() => {
