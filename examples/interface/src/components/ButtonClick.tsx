@@ -23,6 +23,7 @@ const ButtonClick = () => {
   const ekubo_position_address = useMemo(() => "0x73fa8432bf59f8ed535f29acfd89a7020758bda7be509e00dfed8a9fde12ddc", [])
   const ekubo_core_address = useMemo(() => "0x031e8a7ab6a6a556548ac85cbb8b5f56e8905696e9f13e9a858142b8ee0cc221", [])
   const avnu_address = useMemo(() => "0x07e36202ace0ab52bf438bd8a8b64b3731c48d09f0d8879f5b006384c2f35032", [])
+  const simple_swapper = useMemo(() => "0x064f7ed2dc5070133ae8ccdf85f01e82507facbe5cdde456e1418e3901dc51a0", [])
   const provider = new Provider({ sequencer: { network: constants.NetworkName.SN_GOERLI } });
 
   let wrap = new Wrap(
@@ -64,6 +65,12 @@ const ButtonClick = () => {
     if (!account) return;
     const realERC1155Amount = erc1155AmountForSwap;
     account?.execute(wrap.swapFromERC1155ToERC20ByAVNU(realERC1155Amount, 1313331313, avnu_address, account.address, FeeAmount.MEDIUM, 0.99, currentPrice))
+  }, [account, erc1155AmountForSwap, currentPrice, avnu_address])
+
+  const handleSwapFromERC1155ToERC20BySimpleSwap = useCallback(() => {
+    if (!account) return;
+    const realERC1155Amount = erc1155AmountForSwap;
+    account?.execute(wrap.swapFromERC1155ToERC20BySimpleSwapper(realERC1155Amount, 1313331313, simple_swapper, account.address, FeeAmount.MEDIUM, 0.99, currentPrice))
   }, [account, erc1155AmountForSwap, currentPrice, avnu_address])
 
   const mayInitializePool = useCallback(() => {
@@ -141,7 +148,7 @@ const ButtonClick = () => {
         <input type="number" id="erc1155 amount" value={erc1155AmountForSwap} onChange={(e) => setERC1155AmountForSwap(parseFloat(e.target.value))} />
       </div>
       <div>
-        <button onClick={handleSwapFromERC1155ToERC20ByAVNU}>swap</button>
+        <button onClick={handleSwapFromERC1155ToERC20BySimpleSwap}>swap</button>
       </div>
 
     </div>
