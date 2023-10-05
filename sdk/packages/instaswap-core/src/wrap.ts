@@ -286,7 +286,7 @@ export class Wrap {
             entrypoint: "swap",
             calldata: CallData.compile(tmp)
         }
-        return [simpleSwap];
+        return [approveForAll, depositToWERC20, transferWERC20, simpleSwap];
 
     }
 
