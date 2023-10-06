@@ -273,8 +273,8 @@ export class Wrap {
                 amount: cairo.uint256(BigInt(erc1155AmountIn) * (BigInt(10 ** 18))) // wrap token has 18 decimals
             })
         }
-        let isToken1 = (Wrap.ERC20Contract.address > Wrap.WERC20Contract.address) ? true : false;
-        let sqrt_ratio_limit = (Wrap.ERC20Contract.address > Wrap.WERC20Contract.address) ? MAX_SQRT_RATIO : MIN_SQRT_RATIO;
+        let isToken1 = !(Wrap.ERC20Contract.address > Wrap.WERC20Contract.address) ? true : false;
+        let sqrt_ratio_limit = !(Wrap.ERC20Contract.address > Wrap.WERC20Contract.address) ? MAX_SQRT_RATIO : MIN_SQRT_RATIO;
         let tmp = {
             pool_key: {
                 token0: sortedTokens[0].address,
