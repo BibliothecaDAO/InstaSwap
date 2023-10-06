@@ -58,19 +58,19 @@ const ButtonClick = () => {
     if (!account) return;
     const realERC1155Amount = erc1155Amount;
     const realERC20Amount = ethAmount * (10 **18);
-    account?.execute(wrap.addLiquidity(realERC1155Amount, realERC20Amount, FeeAmount.MEDIUM, lowerBound, upperBound))
+    account?.execute(wrap.addLiquidity(realERC1155Amount, realERC20Amount, FeeAmount.LOWEST, lowerBound, upperBound))
   }, [account, lowerBound, upperBound, ethAmount, erc1155Amount])
 
   const handleSwapFromERC1155ToERC20ByAVNU = useCallback(() => {
     if (!account) return;
     const realERC1155Amount = erc1155AmountForSwap;
-    account?.execute(wrap.swapFromERC1155ToERC20ByAVNU(realERC1155Amount, 1313331313, avnu_address, account.address, FeeAmount.MEDIUM, 0.99, currentPrice))
+    account?.execute(wrap.swapFromERC1155ToERC20ByAVNU(realERC1155Amount, 1313331313, avnu_address, account.address, FeeAmount.LOWEST, 0.99, currentPrice))
   }, [account, erc1155AmountForSwap, currentPrice, avnu_address])
 
   const handleSwapFromERC1155ToERC20BySimpleSwap = useCallback(() => {
     if (!account) return;
     const realERC1155Amount = erc1155AmountForSwap;
-    account?.execute(wrap.swapFromERC1155ToERC20BySimpleSwapper(realERC1155Amount, 1313331313, simple_swapper, account.address, FeeAmount.MEDIUM, 0.99, currentPrice))
+    account?.execute(wrap.swapFromERC1155ToERC20BySimpleSwapper(realERC1155Amount, 1313331313, simple_swapper, account.address, FeeAmount.LOWEST, 0.99, currentPrice))
   }, [account, erc1155AmountForSwap, currentPrice, avnu_address])
 
   const mayInitializePool = useCallback(() => {
@@ -78,7 +78,7 @@ const ButtonClick = () => {
       mag: 0n,
       sign: false
     }
-    account?.execute(wrap.mayInitializePool(FeeAmount.MEDIUM, initialize_tick))
+    account?.execute(wrap.mayInitializePool(FeeAmount.LOWEST, initialize_tick))
   }, [account, lowerBound, upperBound])
 
   const mintERC1155Token = useCallback(async () => {

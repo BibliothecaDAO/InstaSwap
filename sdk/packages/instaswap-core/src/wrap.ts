@@ -9,6 +9,8 @@ import { FeeAmount } from './constants';
 import { TickMath } from './tickMath';
 import { Decimal } from 'decimal.js-light';
 
+const MAX_SQRT_RATIO = 6277100250585753475930931601400621808602321654880405518632n;
+const MIN_SQRT_RATIO = 18446748437148339061n;
 
 export class Wrap {
     public static ERC1155Contract: Contract;
@@ -16,6 +18,8 @@ export class Wrap {
     public static ERC20Contract: Contract;
     public static EkuboPosition: Contract;
     public static EkuboCoreContract: Contract;
+
+    
 
     constructor(ERC1155Address: string, WERC20Address: string, ERC20Address: string, EkuboPositionAddress: string, EkuboCoreAddress: string, provider: Provider) {
         Wrap.ERC1155Contract = new Contract(ERC1155, ERC1155Address, provider);
@@ -32,6 +36,15 @@ export class Wrap {
     // public withdraw = async (amount: bigint) => {
     //     // 
     // }
+    public static closestTick(tick: number): bigint {
+        let t = 200n;
+        let tick2 = BigInt(tick);
+        let closestTick = tick2 - (tick2 % t);
+        return closestTick;
+
+        
+
+    }
 
     public addLiquidity(erc1155Amount: BigNumberish, erc20Amount: BigNumberish, fee: FeeAmount, lowerPrice: number, upperPrice: number): Call[] {
 
@@ -88,31 +101,32 @@ export class Wrap {
         let signLowerTick = lowerTick < 0 ? true : false;
         let absUpperTick = Math.abs(upperTick);
         let signUpperTick = upperTick < 0 ? true : false;
-
+        let tick = 50000000n;
+        let tmp = {
+            pool_key: {
+                token0: sortedTokens[0].address,
+                token1: sortedTokens[1].address,
+                fee: Wrap.getFeeX128(fee),
+                tick_spacing: 200,
+                extension: 0,
+            },
+            bounds: {
+                lower: {
+                    mag: tick,
+                    sign: signLowerTick,
+                },
+                upper: {
+                    mag: tick,
+                    sign: signUpperTick,
+                }
+            },
+            min_liquidity: 2000,
+        };
         // mint_and_deposit
         const mintAndDeposit: Call = {
             contractAddress: Wrap.EkuboPosition.address,
             entrypoint: "mint_and_deposit",
-            calldata: CallData.compile({
-                pool_key: {
-                    token0: sortedTokens[0].address,
-                    token1: sortedTokens[1].address,
-                    fee: Wrap.getFeeX128(fee),
-                    tick_spacing: 1,
-                    extension: 0,
-                },
-                bounds: {
-                    lower: {
-                        mag: absLowerTick,
-                        sign: signLowerTick,
-                    },
-                    upper: {
-                        mag: absUpperTick,
-                        sign: signUpperTick,
-                    }
-                },
-                min_liquidity: 12,
-            })
+            calldata: CallData.compile(tmp)
         }
         // clear werc20
         const clearWERC20: Call = {
@@ -206,7 +220,7 @@ export class Wrap {
                         sortedTokens[0].address,
                         sortedTokens[1].address,
                         Wrap.getFeeX128(fee),  //fee for determin the pool_key
-                        1, // tick_spacing for determin the pool_key
+                        200, // tick_spacing for determin the pool_key
                         0, // extension for determin the pool_key
                         363034526046013994104916607590000000000000000000001n  //sqrt_ratio_limit
                     ],
@@ -265,20 +279,20 @@ export class Wrap {
                 token0: sortedTokens[0].address,
                 token1: sortedTokens[1].address,
                 fee: Wrap.getFeeX128(fee),
-                tick_spacing: 1,
+                tick_spacing: 200,
                 extension: 0,
             },
             swap_params: {
                 amount: {
-                    mag: werc20AmountIn / 1000000n, // why 1000000n?
+                    mag: werc20AmountIn, 
                     sign: false
                 },
                 is_token1: true,
-                sqrt_ratio_limit: cairo.uint256(8507059173023461586584365185794205286400000n),
-                skip_ahead: 0,
+                sqrt_ratio_limit: cairo.uint256(MAX_SQRT_RATIO),
+                skip_ahead: 4294967295,
             },
             recipient: userAddress,
-            calculated_amount_threshold: 12000,
+            calculated_amount_threshold: 12000000,
         };
         // swap
         const simpleSwap: Call = {
@@ -286,7 +300,21 @@ export class Wrap {
             entrypoint: "swap",
             calldata: CallData.compile(tmp)
         }
-        return [approveForAll, depositToWERC20, transferWERC20, simpleSwap];
+        const clearToken0: Call = {
+            contractAddress: simpleSwapperAddress,
+            entrypoint: "clear",
+            calldata: CallData.compile({
+                token: sortedTokens[0].address
+            })
+        }
+        const clearToken1: Call = {
+            contractAddress: simpleSwapperAddress,
+            entrypoint: "clear",
+            calldata: CallData.compile({
+                token: sortedTokens[1].address
+            })
+        }
+        return [approveForAll, depositToWERC20, transferWERC20, simpleSwap, clearToken0, clearToken1];
 
     }
 
@@ -303,7 +331,7 @@ export class Wrap {
                     token0: sortedTokens[0].address,
                     token1: sortedTokens[1].address,
                     fee: Wrap.getFeeX128(fee),
-                    tick_spacing: 1n,
+                    tick_spacing: 200,
                     extension: 0,
                 },
                 initial_tick
