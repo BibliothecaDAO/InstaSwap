@@ -1,12 +1,13 @@
-import { Contract, uint256, CallData, RawArgs, Call, num, cairo, BigNumberish, Provider } from 'starknet'
+import { Contract, uint256, CallData, RawArgs, Call, num, cairo, BigNumberish, Provider, Account, AccountInterface } from 'starknet'
 
 import ERC1155 from "./abi/erc1155-abi.json";
 import WERC20 from "./abi/werc20-abi.json";
 import ERC20 from "./abi/erc20-abi.json";
 import EkuboPosition from "./abi/ekubo-position-abi.json";
+import Quoter from "./abi/quoter-abi.json";
 import EkuboCore from "./abi/ekubo-core-abi.json";
 import { FeeAmount } from './constants';
-import { TickMath } from './tickMath';
+import { getSqrtRatioAtTick, getTickAtSqrtRatio } from './tickMath';
 import { Decimal } from 'decimal.js-light';
 
 const MAX_SQRT_RATIO = 6277100250585753475930931601400621808602321654880405518632n;
@@ -18,15 +19,17 @@ export class Wrap {
     public static ERC20Contract: Contract;
     public static EkuboPosition: Contract;
     public static EkuboCoreContract: Contract;
+    public static QuoterContract: Contract;
 
     
 
-    constructor(ERC1155Address: string, WERC20Address: string, ERC20Address: string, EkuboPositionAddress: string, EkuboCoreAddress: string, provider: Provider) {
+    constructor(ERC1155Address: string, WERC20Address: string, ERC20Address: string, EkuboPositionAddress: string, EkuboCoreAddress: string, QuoterAddress: string, provider: Provider) {
         Wrap.ERC1155Contract = new Contract(ERC1155, ERC1155Address, provider);
         Wrap.WERC20Contract = new Contract(WERC20, WERC20Address, provider);
         Wrap.ERC20Contract = new Contract(ERC20, ERC20Address, provider);
         Wrap.EkuboPosition = new Contract(EkuboPosition, EkuboPositionAddress, provider);
         Wrap.EkuboCoreContract = new Contract(EkuboCore, EkuboCoreAddress, provider);
+        Wrap.QuoterContract = new Contract(Quoter, QuoterAddress, provider);
     }
 
     // public deposit = async (amount: bigint) => {
@@ -92,8 +95,8 @@ export class Wrap {
         Decimal.set({ precision: 78 });
         let lowerSqrtRatioX128 = new Decimal(lowerPrice).sqrt().mul(new Decimal(2).pow(128)).toFixed(0);
         let upperSqrtRatioX128 = new Decimal(upperPrice).sqrt().mul(new Decimal(2).pow(128)).toFixed(0);
-        const lowerTick = TickMath.getTickAtSqrtRatio(BigInt(lowerSqrtRatioX128));
-        const upperTick = TickMath.getTickAtSqrtRatio(BigInt(upperSqrtRatioX128));
+        const lowerTick = getTickAtSqrtRatio(BigInt(lowerSqrtRatioX128));
+        const upperTick = getTickAtSqrtRatio(BigInt(upperSqrtRatioX128));
         if (lowerTick > upperTick) {
             throw new Error("lowerTick should be less than upperTick");
         }
@@ -163,6 +166,41 @@ export class Wrap {
         const sortedTokens: Contract[] = [Wrap.ERC20Contract, Wrap.WERC20Contract].sort((a, b) => a.address.localeCompare(b.address));
 
 
+    }
+
+    public static quoteSingle = async (fee: FeeAmount, specified_token: string, amount: bigint, account: AccountInterface): Promise<number> => {
+        this.QuoterContract.connect(account);
+        const sortedTokens: Contract[] = [Wrap.ERC20Contract, Wrap.WERC20Contract].sort((a, b) => a.address.localeCompare(b.address));
+        let tmp = {
+            amount: {
+                mag: amount, 
+                sign: false
+            },
+            specified_token: specified_token,
+            pool_key: {
+                token0: sortedTokens[0].address,
+                token1: sortedTokens[1].address,
+                fee: Wrap.getFeeX128(fee),
+                tick_spacing: 200,
+                extension: 0,
+            },
+        };
+        try {
+            const res = await Wrap.QuoterContract.quote_single(tmp);
+            return res;
+          } catch (error: any) {
+            let inputString = error.toString();
+            const substringToFind = "0x3f532df6e73f94d604f4eb8c661635595c91adc1d387931451eacd418cfbd14";
+            const substringStartIndex = inputString.indexOf(substringToFind);
+            
+            if (substringStartIndex !== -1) {
+              const startIndex = substringStartIndex + substringToFind.length + 2; // Skip the substring and the following comma and whitespace
+              const endIndex = inputString.indexOf(",", startIndex);
+              const extractedString = inputString.substring(startIndex, endIndex).trim();
+              return extractedString;
+            }
+            return 0;
+          }
     }
 
     public swapFromERC1155ToERC20ByAVNU(erc1155AmountIn: BigNumberish, minERC20AmountOut: BigNumberish, aggregatorAddress: string, userAddress: string, fee: FeeAmount, slippage: number, currentPrice: number) {
@@ -385,19 +423,20 @@ export class Wrap {
         // TODO check length
         const sortedTokens: Contract[] = [Wrap.ERC20Contract, Wrap.WERC20Contract].sort((a, b) => a.address.localeCompare(b.address));
 
+        let tmp = {
+            pool_key: {
+                token0: sortedTokens[0].address,
+                token1: sortedTokens[1].address,
+                fee: Wrap.getFeeX128(fee),
+                tick_spacing: 200,
+                extension: 0,
+            },
+            initial_tick
+        };
         const mayInitializePool: Call = {
             contractAddress: Wrap.EkuboCoreContract.address,
             entrypoint: "maybe_initialize_pool",
-            calldata: CallData.compile({
-                pool_key: {
-                    token0: sortedTokens[0].address,
-                    token1: sortedTokens[1].address,
-                    fee: Wrap.getFeeX128(fee),
-                    tick_spacing: 200,
-                    extension: 0,
-                },
-                initial_tick
-            })
+            calldata: CallData.compile(tmp)
         }
         return [mayInitializePool];
     }

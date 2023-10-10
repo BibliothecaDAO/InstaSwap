@@ -1,0 +1,274 @@
+[
+    {
+      "type": "impl",
+      "name": "QuoterLockerImpl",
+      "interface_name": "ekubo::interfaces::core::ILocker"
+    },
+    {
+      "type": "interface",
+      "name": "ekubo::interfaces::core::ILocker",
+      "items": [
+        {
+          "type": "function",
+          "name": "locked",
+          "inputs": [
+            {
+              "name": "id",
+              "type": "core::integer::u32"
+            },
+            {
+              "name": "data",
+              "type": "core::array::Array::<core::felt252>"
+            }
+          ],
+          "outputs": [
+            {
+              "type": "core::array::Array::<core::felt252>"
+            }
+          ],
+          "state_mutability": "external"
+        }
+      ]
+    },
+    {
+      "type": "impl",
+      "name": "QuoterImpl",
+      "interface_name": "ekubo::quoter::IQuoter"
+    },
+    {
+      "type": "enum",
+      "name": "core::bool",
+      "variants": [
+        {
+          "name": "False",
+          "type": "()"
+        },
+        {
+          "name": "True",
+          "type": "()"
+        }
+      ]
+    },
+    {
+      "type": "struct",
+      "name": "ekubo::types::i129::i129",
+      "members": [
+        {
+          "name": "mag",
+          "type": "core::integer::u128"
+        },
+        {
+          "name": "sign",
+          "type": "core::bool"
+        }
+      ]
+    },
+    {
+      "type": "struct",
+      "name": "ekubo::types::keys::PoolKey",
+      "members": [
+        {
+          "name": "token0",
+          "type": "core::starknet::contract_address::ContractAddress"
+        },
+        {
+          "name": "token1",
+          "type": "core::starknet::contract_address::ContractAddress"
+        },
+        {
+          "name": "fee",
+          "type": "core::integer::u128"
+        },
+        {
+          "name": "tick_spacing",
+          "type": "core::integer::u128"
+        },
+        {
+          "name": "extension",
+          "type": "core::starknet::contract_address::ContractAddress"
+        }
+      ]
+    },
+    {
+      "type": "struct",
+      "name": "core::array::Span::<ekubo::types::keys::PoolKey>",
+      "members": [
+        {
+          "name": "snapshot",
+          "type": "@core::array::Array::<ekubo::types::keys::PoolKey>"
+        }
+      ]
+    },
+    {
+      "type": "struct",
+      "name": "ekubo::quoter::Route",
+      "members": [
+        {
+          "name": "pool_keys",
+          "type": "core::array::Span::<ekubo::types::keys::PoolKey>"
+        }
+      ]
+    },
+    {
+      "type": "struct",
+      "name": "ekubo::quoter::QuoteParameters",
+      "members": [
+        {
+          "name": "amount",
+          "type": "ekubo::types::i129::i129"
+        },
+        {
+          "name": "specified_token",
+          "type": "core::starknet::contract_address::ContractAddress"
+        },
+        {
+          "name": "route",
+          "type": "ekubo::quoter::Route"
+        }
+      ]
+    },
+    {
+      "type": "struct",
+      "name": "ekubo::quoter::QuoteResult",
+      "members": [
+        {
+          "name": "amount",
+          "type": "ekubo::types::i129::i129"
+        },
+        {
+          "name": "other_token",
+          "type": "core::starknet::contract_address::ContractAddress"
+        }
+      ]
+    },
+    {
+      "type": "struct",
+      "name": "ekubo::quoter::QuoteSingleParameters",
+      "members": [
+        {
+          "name": "amount",
+          "type": "ekubo::types::i129::i129"
+        },
+        {
+          "name": "specified_token",
+          "type": "core::starknet::contract_address::ContractAddress"
+        },
+        {
+          "name": "pool_key",
+          "type": "ekubo::types::keys::PoolKey"
+        }
+      ]
+    },
+    {
+      "type": "struct",
+      "name": "core::integer::u256",
+      "members": [
+        {
+          "name": "low",
+          "type": "core::integer::u128"
+        },
+        {
+          "name": "high",
+          "type": "core::integer::u128"
+        }
+      ]
+    },
+    {
+      "type": "struct",
+      "name": "ekubo::types::delta::Delta",
+      "members": [
+        {
+          "name": "amount0",
+          "type": "ekubo::types::i129::i129"
+        },
+        {
+          "name": "amount1",
+          "type": "ekubo::types::i129::i129"
+        }
+      ]
+    },
+    {
+      "type": "interface",
+      "name": "ekubo::quoter::IQuoter",
+      "items": [
+        {
+          "type": "function",
+          "name": "quote",
+          "inputs": [
+            {
+              "name": "params",
+              "type": "ekubo::quoter::QuoteParameters"
+            }
+          ],
+          "outputs": [
+            {
+              "type": "ekubo::quoter::QuoteResult"
+            }
+          ],
+          "state_mutability": "view"
+        },
+        {
+          "type": "function",
+          "name": "quote_single",
+          "inputs": [
+            {
+              "name": "params",
+              "type": "ekubo::quoter::QuoteSingleParameters"
+            }
+          ],
+          "outputs": [
+            {
+              "type": "ekubo::quoter::QuoteResult"
+            }
+          ],
+          "state_mutability": "view"
+        },
+        {
+          "type": "function",
+          "name": "delta_to_sqrt_ratio",
+          "inputs": [
+            {
+              "name": "pool_key",
+              "type": "ekubo::types::keys::PoolKey"
+            },
+            {
+              "name": "sqrt_ratio",
+              "type": "core::integer::u256"
+            }
+          ],
+          "outputs": [
+            {
+              "type": "ekubo::types::delta::Delta"
+            }
+          ],
+          "state_mutability": "view"
+        }
+      ]
+    },
+    {
+      "type": "struct",
+      "name": "ekubo::interfaces::core::ICoreDispatcher",
+      "members": [
+        {
+          "name": "contract_address",
+          "type": "core::starknet::contract_address::ContractAddress"
+        }
+      ]
+    },
+    {
+      "type": "constructor",
+      "name": "constructor",
+      "inputs": [
+        {
+          "name": "core",
+          "type": "ekubo::interfaces::core::ICoreDispatcher"
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "name": "ekubo::quoter::Quoter::Event",
+      "kind": "enum",
+      "variants": []
+    }
+  ]

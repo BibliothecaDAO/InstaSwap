@@ -25,6 +25,7 @@ const ButtonClick = () => {
   const ekubo_core_address = useMemo(() => "0x031e8a7ab6a6a556548ac85cbb8b5f56e8905696e9f13e9a858142b8ee0cc221", [])
   const avnu_address = useMemo(() => "0x07e36202ace0ab52bf438bd8a8b64b3731c48d09f0d8879f5b006384c2f35032", [])
   const simple_swapper = useMemo(() => "0x064f7ed2dc5070133ae8ccdf85f01e82507facbe5cdde456e1418e3901dc51a0", [])
+  const quoter = useMemo(() => "0x042aa743335663ed9c7b52b331ab7f81cc8d65280d311506653f9b5cc22be7cb", [])
   const provider = new Provider({ sequencer: { network: constants.NetworkName.SN_GOERLI } });
 
   let wrap = new Wrap(
@@ -33,6 +34,7 @@ const ButtonClick = () => {
     eth_address,
     ekubo_position_address,
     ekubo_core_address,
+    quoter,
     provider
   )
   const getERC1155Balance = useCallback(async () => {
@@ -43,9 +45,11 @@ const ButtonClick = () => {
 
   const getCurrentPrice = useCallback(async () => {
     if (!address) return;
-    // let p = await Wrap.getCurrentPrice();
-    // setCurrentPrice(p);
-  }, [address, erc1155_address]);
+    if (!account) return;
+    let p = await Wrap.quoteSingle(FeeAmount.LOWEST, eth_address, BigInt(10** 7), account);
+    let realPrice = p / (10 ** 7);
+    setCurrentPrice(realPrice);
+  }, [address, erc1155_address, account]);
 
   useEffect(() => {
     getERC1155Balance();
@@ -54,6 +58,14 @@ const ButtonClick = () => {
     }, 10000);
     return () => clearInterval(interval);
   }, [getERC1155Balance]);
+
+  useEffect(() => {
+    getCurrentPrice();
+    const interval = setInterval(() => {
+      getCurrentPrice();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [getCurrentPrice]);
 
   const handleAddLiquidity = useCallback(() => {
     if (!account) return;
@@ -114,7 +126,7 @@ const ButtonClick = () => {
         <p>ERC1155 Balance: {balance}</p>
       </div>
       <div>
-        <p>Current Price : {currentPrice}</p>
+        <p>Current Price : 1 ETH =  {currentPrice} WERC20 </p>
       </div>
       <div>
         <h3> Mint ERC1155 </h3>
