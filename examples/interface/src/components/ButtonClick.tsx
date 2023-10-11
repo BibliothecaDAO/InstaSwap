@@ -1,6 +1,6 @@
-import { useAccount, useConnectors } from '@starknet-react/core'
+import { useAccount } from '@starknet-react/core'
 import { useCallback, useMemo, useState, useEffect } from 'react'
-import { Contract, uint256, CallData, RawArgs, Call, num } from 'starknet'
+import { CallData, Call } from 'starknet'
 import { Wrap } from '@bibliothecadao/instaswap-core'
 import { FeeAmount,SwapDirection } from '@bibliothecadao/instaswap-core'
 import { Provider, constants, cairo } from "starknet"
@@ -11,7 +11,7 @@ const ButtonClick = () => {
   const [upperBound, setUpperBound] = useState(0);
   const { address, account } = useAccount()
   const [balance, setBalance] = useState("0");
-  const [currentPrice, setCurrentPrice] = useState(0);
+  const [currentPrice] = useState(0);
   const [mintAmount, setMintAmount] = useState(0);
   const [erc1155Amount, setAddLiquidityERC1155Amount] = useState(0);
   const [ethAmount, setAddLiquidityEthAmount] = useState(0);
@@ -47,12 +47,6 @@ const ButtonClick = () => {
     setBalance(b.toString());
   }, [address, erc1155_address]);
 
-  const getCurrentPrice = useCallback(async () => {
-    if (!address) return;
-    // let p = await Wrap.getCurrentPrice();
-    // setCurrentPrice(p);
-  }, [address, erc1155_address]);
-
   useEffect(() => {
     getERC1155Balance();
     const interval = setInterval(() => {
@@ -79,21 +73,6 @@ const ButtonClick = () => {
 
   }, [account, lowerBound, upperBound, ethAmount, erc1155Amount])
 
-  const handleSwapFromERC1155ToERC20ByAVNU = useCallback(async () => {
-    if (!account) return;
-
-    const params = {
-        erc1155AmountIn: erc1155AmountForSwap,
-        minERC20AmountOut: 1313331313,
-        aggregatorAddress: avnu_address,
-        userAddress: account.address,
-        fee: FeeAmount.LOWEST,
-        slippage: 0.99,
-        currentPrice: currentPrice,
-    }
-  const { transaction_hash } = await wrap.swapFromERC1155ToERC20ByAVNU(params);
-  console.log(transaction_hash);
-  }, [account, erc1155AmountForSwap, currentPrice, avnu_address])
 
   const handleSwapFromERC1155ToERC20BySimpleSwap = useCallback(async  () => {
     if (!account) return;
