@@ -34,11 +34,12 @@ const ButtonClick = () => {
       erc20Address:eth_address,
       ekuboPositionAddress:ekubo_position_address,
       ekuboCoreAddress:ekubo_core_address,
-      provider:provider
+      provider:provider,
+      account:account
   }
 
 
-  const wrap = new Wrap(config);
+    const wrap = new Wrap(config);
 
   const getERC1155Balance = useCallback(async () => {
     if (!address) return;
@@ -60,7 +61,7 @@ const ButtonClick = () => {
     return () => clearInterval(interval);
   }, [getERC1155Balance]);
 
-  const handleAddLiquidity = useCallback(() => {
+  const handleAddLiquidity = useCallback(async () => {
 
       if (!account) return;
 
@@ -73,14 +74,12 @@ const ButtonClick = () => {
       };
 
       //add liquidity
-      account?.execute(wrap.addLiquidity(params));
+      const { transaction_hash } = await wrap.addLiquidity(params);
+      console.log(transaction_hash);
 
-      // const realERC1155Amount = erc1155Amount;
-      // const realERC20Amount = ethAmount * (10 **18);
-      // account?.execute(wrap.addLiquidity(realERC1155Amount, realERC20Amount, FeeAmount.LOWEST, lowerBound, upperBound))
   }, [account, lowerBound, upperBound, ethAmount, erc1155Amount])
 
-  const handleSwapFromERC1155ToERC20ByAVNU = useCallback(() => {
+  const handleSwapFromERC1155ToERC20ByAVNU = useCallback(async () => {
     if (!account) return;
 
     const params = {
@@ -92,14 +91,11 @@ const ButtonClick = () => {
         slippage: 0.99,
         currentPrice: currentPrice,
     }
-
-    account?.execute(wrap.swapFromERC1155ToERC20ByAVNU(params));
-      //
-      // const realERC1155Amount = erc1155AmountForSwap;
-      // account?.execute(wrap.swapFromERC1155ToERC20ByAVNU(realERC1155Amount, 1313331313, avnu_address, account.address, FeeAmount.LOWEST, 0.99, currentPrice))
+  const { transaction_hash } = await wrap.swapFromERC1155ToERC20ByAVNU(params);
+  console.log(transaction_hash);
   }, [account, erc1155AmountForSwap, currentPrice, avnu_address])
 
-  const handleSwapFromERC1155ToERC20BySimpleSwap = useCallback(() => {
+  const handleSwapFromERC1155ToERC20BySimpleSwap = useCallback(async  () => {
     if (!account) return;
 
       const params = {
@@ -110,12 +106,12 @@ const ButtonClick = () => {
           fee:  FeeAmount.LOWEST,
           slippage: 0.99,
       }
-      account?.execute(wrap.swapBySimple(SwapDirection.ERC1155_TO_ERC20,params))
-    // const realERC1155Amount = erc1155AmountForSwap;
-    // account?.execute(wrap.swapFromERC1155ToERC20BySimpleSwapper(realERC1155Amount, 1313331313, simple_swapper, account.address, FeeAmount.LOWEST, 0.99, currentPrice))
+
+      const { transaction_hash } = await wrap.swapSimple(SwapDirection.ERC1155_TO_ERC20,params);
+      console.log(transaction_hash);
   }, [account, erc1155AmountForSwap, currentPrice, avnu_address])
 
-  const handleSwapFromERC20ToERC1155BySimpleSwap = useCallback(() => {
+  const handleSwapFromERC20ToERC1155BySimpleSwap = useCallback(async () => {
     if (!account) return;
     // debugger;
       const params = {
@@ -126,17 +122,19 @@ const ButtonClick = () => {
           fee:  FeeAmount.LOWEST,
           slippage: 0.99,
       }
-      account?.execute(wrap.swapBySimple(SwapDirection.ERC20_TO_ERC1155,params));
-    // const realERC1155Amount = erc20AmountForSwap * (10 **18);
-    // account?.execute(wrap.swapFromERC20ToERC1155BySimpleSwapper(realERC1155Amount, 1313331313, simple_swapper, account.address, FeeAmount.LOWEST, 0.99, currentPrice))
+
+      const { transaction_hash } = await wrap.swapSimple(SwapDirection.ERC20_TO_ERC1155,params);
+      console.log(transaction_hash);
   }, [account, erc20AmountForSwap, currentPrice, avnu_address])
 
-  const mayInitializePool = useCallback(() => {
+  const mayInitializePool = useCallback(async () => {
     const initialize_tick = {
       mag: 0n,
       sign: false
     }
-    account?.execute(wrap.mayInitializePool(FeeAmount.LOWEST, initialize_tick))
+
+    const { transaction_hash } = await wrap.mayInitializePool(FeeAmount.LOWEST, initialize_tick);
+    console.log(transaction_hash);
   }, [account, lowerBound, upperBound])
 
   const mintERC1155Token = useCallback(async () => {
