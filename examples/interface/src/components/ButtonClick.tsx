@@ -2,7 +2,7 @@ import { useAccount, useConnectors } from '@starknet-react/core'
 import { useCallback, useMemo, useState, useEffect } from 'react'
 import { Contract, uint256, CallData, RawArgs, Call, num } from 'starknet'
 import { Wrap } from '@bibliothecadao/instaswap-core'
-import { FeeAmount } from '@bibliothecadao/instaswap-core'
+import { FeeAmount,SwapDirection } from '@bibliothecadao/instaswap-core'
 import { Provider, constants, cairo } from "starknet"
 
 
@@ -25,31 +25,38 @@ const ButtonClick = () => {
   const ekubo_core_address = useMemo(() => "0x031e8a7ab6a6a556548ac85cbb8b5f56e8905696e9f13e9a858142b8ee0cc221", [])
   const avnu_address = useMemo(() => "0x07e36202ace0ab52bf438bd8a8b64b3731c48d09f0d8879f5b006384c2f35032", [])
   const simple_swapper = useMemo(() => "0x064f7ed2dc5070133ae8ccdf85f01e82507facbe5cdde456e1418e3901dc51a0", [])
-  const quoter = useMemo(() => "0x042aa743335663ed9c7b52b331ab7f81cc8d65280d311506653f9b5cc22be7cb", [])
+    const quoter = useMemo(() => "0x042aa743335663ed9c7b52b331ab7f81cc8d65280d311506653f9b5cc22be7cb", [])
   const provider = new Provider({ sequencer: { network: constants.NetworkName.SN_GOERLI } });
 
-  let wrap = new Wrap(
-    erc1155_address,
-    werc20_address,
-    eth_address,
-    ekubo_position_address,
-    ekubo_core_address,
-    quoter,
-    provider
-  )
+
+  const config = {
+      erc1155Address: erc1155_address,
+      werc20Address:werc20_address,
+      erc20Address:eth_address,
+      ekuboPositionAddress:ekubo_position_address,
+      ekuboCoreAddress:ekubo_core_address,
+      quoterAddress:quoter,
+      provider:provider,
+      account:account
+  }
+
+
+    const wrap = new Wrap(config);
+
   const getERC1155Balance = useCallback(async () => {
     if (!address) return;
-    let b = await Wrap.getERC1155Balance(address, 1);
+    const b = await Wrap.getERC1155Balance(address, 1);
     setBalance(b.toString());
   }, [address, erc1155_address]);
 
-  const getCurrentPrice = useCallback(async () => {
+
+
+const getCurrentPrice = useCallback(async () => {
     if (!address) return;
-    if (!account) return;
-    let p = await Wrap.quoteSingle(FeeAmount.LOWEST, eth_address, BigInt(10** 7), account);
-    let realPrice = p / (10 ** 7);
+    const  p = await wrap.quoteSingle(FeeAmount.LOWEST, eth_address, BigInt(10** 7));
+    const realPrice = p / (10 ** 7);
     setCurrentPrice(realPrice);
-  }, [address, erc1155_address, account]);
+}, [address, erc1155_address, account]);
 
   useEffect(() => {
     getERC1155Balance();
@@ -59,46 +66,88 @@ const ButtonClick = () => {
     return () => clearInterval(interval);
   }, [getERC1155Balance]);
 
-  useEffect(() => {
-    getCurrentPrice();
-    const interval = setInterval(() => {
-      getCurrentPrice();
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [getCurrentPrice]);
+    useEffect(() => {
+        getCurrentPrice();
+        const interval = setInterval(() => {
+            getCurrentPrice();
+        }, 3000);
+        return () => clearInterval(interval);
+    }, [getCurrentPrice]);
 
-  const handleAddLiquidity = useCallback(() => {
-    if (!account) return;
-    const realERC1155Amount = erc1155Amount;
-    const realERC20Amount = ethAmount * (10 **18);
-    account?.execute(wrap.addLiquidity(realERC1155Amount, realERC20Amount, FeeAmount.LOWEST, lowerBound, upperBound))
+  const handleAddLiquidity = useCallback(async () => {
+
+      if (!account) return;
+
+      const params = {
+          erc1155Amount: erc1155Amount,
+          erc20Amount: ethAmount * (10 **18),
+          fee: FeeAmount.LOWEST,
+          lowerPrice: lowerBound,
+          upperPrice:upperBound,
+      };
+
+      //add liquidity
+      const { transaction_hash } = await wrap.addLiquidity(params);
+      console.log(transaction_hash);
+
   }, [account, lowerBound, upperBound, ethAmount, erc1155Amount])
 
-  const handleSwapFromERC1155ToERC20ByAVNU = useCallback(() => {
+  const handleSwapFromERC1155ToERC20ByAVNU = useCallback(async () => {
     if (!account) return;
-    const realERC1155Amount = erc1155AmountForSwap;
-    account?.execute(wrap.swapFromERC1155ToERC20ByAVNU(realERC1155Amount, 1313331313, avnu_address, account.address, FeeAmount.LOWEST, 0.99, currentPrice))
+
+    const params = {
+        erc1155AmountIn: erc1155AmountForSwap,
+        minERC20AmountOut: 1313331313,
+        aggregatorAddress: avnu_address,
+        userAddress: account.address,
+        fee: FeeAmount.LOWEST,
+        slippage: 0.99,
+        currentPrice: currentPrice,
+    }
+  const { transaction_hash } = await wrap.swapFromERC1155ToERC20ByAVNU(params);
+  console.log(transaction_hash);
   }, [account, erc1155AmountForSwap, currentPrice, avnu_address])
 
-  const handleSwapFromERC1155ToERC20BySimpleSwap = useCallback(() => {
+  const handleSwapFromERC1155ToERC20BySimpleSwap = useCallback(async  () => {
     if (!account) return;
-    const realERC1155Amount = erc1155AmountForSwap;
-    account?.execute(wrap.swapFromERC1155ToERC20BySimpleSwapper(realERC1155Amount, 1313331313, simple_swapper, account.address, FeeAmount.LOWEST, 0.99, currentPrice))
+
+      const params = {
+          amountIn: erc1155AmountForSwap,
+          minERC20AmountOut: 1313331313,
+          simpleSwapperAddress: simple_swapper,
+          userAddress: account.address,
+          fee:  FeeAmount.LOWEST,
+          slippage: 0.99,
+      }
+
+      const { transaction_hash } = await wrap.swapSimple(SwapDirection.ERC1155_TO_ERC20,params);
+      console.log(transaction_hash);
   }, [account, erc1155AmountForSwap, currentPrice, avnu_address])
 
-  const handleSwapFromERC20ToERC1155BySimpleSwap = useCallback(() => {
+  const handleSwapFromERC20ToERC1155BySimpleSwap = useCallback(async () => {
     if (!account) return;
-    debugger;
-    const realERC1155Amount = erc20AmountForSwap * (10 **18);
-    account?.execute(wrap.swapFromERC20ToERC1155BySimpleSwapper(realERC1155Amount, 1313331313, simple_swapper, account.address, FeeAmount.LOWEST, 0.99, currentPrice))
+    // debugger;
+      const params = {
+          amountIn: erc20AmountForSwap * (10 **18),
+          minERC20AmountOut: 1313331313,
+          simpleSwapperAddress: simple_swapper,
+          userAddress: account.address,
+          fee:  FeeAmount.LOWEST,
+          slippage: 0.99,
+      }
+
+      const { transaction_hash } = await wrap.swapSimple(SwapDirection.ERC20_TO_ERC1155,params);
+      console.log(transaction_hash);
   }, [account, erc20AmountForSwap, currentPrice, avnu_address])
 
-  const mayInitializePool = useCallback(() => {
-    let initialize_tick = {
+  const mayInitializePool = useCallback(async () => {
+    const initialize_tick = {
       mag: 0n,
       sign: false
     }
-    account?.execute(wrap.mayInitializePool(FeeAmount.LOWEST, initialize_tick))
+
+    const { transaction_hash } = await wrap.mayInitializePool(FeeAmount.LOWEST, initialize_tick);
+    console.log(transaction_hash);
   }, [account, lowerBound, upperBound])
 
   const mintERC1155Token = useCallback(async () => {
@@ -126,7 +175,7 @@ const ButtonClick = () => {
         <p>ERC1155 Balance: {balance}</p>
       </div>
       <div>
-        <p>Current Price : 1 ETH =  {currentPrice} WERC20 </p>
+          <p>Current Price : 1 ETH =  {currentPrice} WERC20 </p>
       </div>
       <div>
         <h3> Mint ERC1155 </h3>
@@ -160,8 +209,20 @@ const ButtonClick = () => {
       <div>
         <button onClick={handleAddLiquidity}>add liquidity</button>
       </div>
+
+        {/*<div>*/}
+        {/*    <h3> Swap From ERC1155 to ERC20 By AVNU </h3>*/}
+        {/*</div>*/}
+        {/*<div>*/}
+        {/*    <label htmlFor="erc1155 amount">ERC1155 amount:</label>*/}
+        {/*    <input type="number" id="erc1155 amount" value={erc1155AmountForSwap} onChange={(e) => setERC1155AmountForSwap(parseFloat(e.target.value))} />*/}
+        {/*</div>*/}
+        {/*<div>*/}
+        {/*    <button onClick={handleSwapFromERC1155ToERC20ByAVNU}>swap</button>*/}
+        {/*</div>*/}
+
       <div>
-        <h3> Swap From ERC1155 to ERC20 </h3>
+        <h3> Swap From ERC1155 to ERC20 By SimpleSwapper </h3>
       </div>
       <div>
         <label htmlFor="erc1155 amount">ERC1155 amount:</label>
@@ -171,7 +232,7 @@ const ButtonClick = () => {
         <button onClick={handleSwapFromERC1155ToERC20BySimpleSwap}>swap</button>
       </div>
       <div>
-        <h3> Swap From ERC20 to ERC1155 </h3>
+        <h3> Swap From ERC20 to ERC1155 By SimpleSwapper</h3>
       </div>
       <div>
         <label htmlFor="erc20 amount">ERC20 amount:</label>

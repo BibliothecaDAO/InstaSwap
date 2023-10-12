@@ -1,10 +1,7 @@
 import { Decimal } from 'decimal.js-light';
 
-
-
-
 export function getTickAtSqrtRatio(sqrt_ratio_x128: bigint): number {
-    // A fixed point .128 number has at most 128 bits after the decimal, 
+    // A fixed point .128 number has at most 128 bits after the decimal,
     // which translates to about 10**38.5 in decimal.
     // That means ~78 decimals of precision should be able to represent
     // any price with full precision.
@@ -23,7 +20,7 @@ export function getTickAtSqrtRatio(sqrt_ratio_x128: bigint): number {
 }
 
 export function getSqrtRatioAtTick(tick: number): bigint {
-    // A fixed point .128 number has at most 128 bits after the decimal, 
+    // A fixed point .128 number has at most 128 bits after the decimal,
     // which translates to about 10**38.5 in decimal.
     // That means ~78 decimals of precision should be able to represent
     // any price with full precision.
