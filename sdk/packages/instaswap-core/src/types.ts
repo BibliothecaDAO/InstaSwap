@@ -7,6 +7,7 @@ export type Config = {
     erc20Address:string;
     ekuboPositionAddress:string;
     ekuboCoreAddress:string;
+    quoterAddress:string;
     account:AccountInterface | undefined;
     provider?:Provider;
 };

@@ -1,6 +1,6 @@
-import { useAccount } from '@starknet-react/core'
+import { useAccount, useConnectors } from '@starknet-react/core'
 import { useCallback, useMemo, useState, useEffect } from 'react'
-import { CallData, Call } from 'starknet'
+import { Contract, uint256, CallData, RawArgs, Call, num } from 'starknet'
 import { Wrap } from '@bibliothecadao/instaswap-core'
 import { FeeAmount,SwapDirection } from '@bibliothecadao/instaswap-core'
 import { Provider, constants, cairo } from "starknet"
@@ -11,7 +11,7 @@ const ButtonClick = () => {
   const [upperBound, setUpperBound] = useState(0);
   const { address, account } = useAccount()
   const [balance, setBalance] = useState("0");
-  const [currentPrice] = useState(0);
+  const [currentPrice, setCurrentPrice] = useState(0);
   const [mintAmount, setMintAmount] = useState(0);
   const [erc1155Amount, setAddLiquidityERC1155Amount] = useState(0);
   const [ethAmount, setAddLiquidityEthAmount] = useState(0);
@@ -25,6 +25,7 @@ const ButtonClick = () => {
   const ekubo_core_address = useMemo(() => "0x031e8a7ab6a6a556548ac85cbb8b5f56e8905696e9f13e9a858142b8ee0cc221", [])
   const avnu_address = useMemo(() => "0x07e36202ace0ab52bf438bd8a8b64b3731c48d09f0d8879f5b006384c2f35032", [])
   const simple_swapper = useMemo(() => "0x064f7ed2dc5070133ae8ccdf85f01e82507facbe5cdde456e1418e3901dc51a0", [])
+    const quoter = useMemo(() => "0x042aa743335663ed9c7b52b331ab7f81cc8d65280d311506653f9b5cc22be7cb", [])
   const provider = new Provider({ sequencer: { network: constants.NetworkName.SN_GOERLI } });
 
 
@@ -34,6 +35,7 @@ const ButtonClick = () => {
       erc20Address:eth_address,
       ekuboPositionAddress:ekubo_position_address,
       ekuboCoreAddress:ekubo_core_address,
+      quoterAddress:quoter,
       provider:provider,
       account:account
   }
@@ -47,6 +49,15 @@ const ButtonClick = () => {
     setBalance(b.toString());
   }, [address, erc1155_address]);
 
+
+
+const getCurrentPrice = useCallback(async () => {
+    if (!address) return;
+    const  p = await wrap.quoteSingle(FeeAmount.LOWEST, eth_address, BigInt(10** 7));
+    const realPrice = p / (10 ** 7);
+    setCurrentPrice(realPrice);
+}, [address, erc1155_address, account]);
+
   useEffect(() => {
     getERC1155Balance();
     const interval = setInterval(() => {
@@ -54,6 +65,14 @@ const ButtonClick = () => {
     }, 10000);
     return () => clearInterval(interval);
   }, [getERC1155Balance]);
+
+    useEffect(() => {
+        getCurrentPrice();
+        const interval = setInterval(() => {
+            getCurrentPrice();
+        }, 3000);
+        return () => clearInterval(interval);
+    }, [getCurrentPrice]);
 
   const handleAddLiquidity = useCallback(async () => {
 
@@ -73,6 +92,21 @@ const ButtonClick = () => {
 
   }, [account, lowerBound, upperBound, ethAmount, erc1155Amount])
 
+  const handleSwapFromERC1155ToERC20ByAVNU = useCallback(async () => {
+    if (!account) return;
+
+    const params = {
+        erc1155AmountIn: erc1155AmountForSwap,
+        minERC20AmountOut: 1313331313,
+        aggregatorAddress: avnu_address,
+        userAddress: account.address,
+        fee: FeeAmount.LOWEST,
+        slippage: 0.99,
+        currentPrice: currentPrice,
+    }
+  const { transaction_hash } = await wrap.swapFromERC1155ToERC20ByAVNU(params);
+  console.log(transaction_hash);
+  }, [account, erc1155AmountForSwap, currentPrice, avnu_address])
 
   const handleSwapFromERC1155ToERC20BySimpleSwap = useCallback(async  () => {
     if (!account) return;
@@ -141,7 +175,7 @@ const ButtonClick = () => {
         <p>ERC1155 Balance: {balance}</p>
       </div>
       <div>
-        <p>Current Price : {currentPrice}</p>
+          <p>Current Price : 1 ETH =  {currentPrice} WERC20 </p>
       </div>
       <div>
         <h3> Mint ERC1155 </h3>

@@ -1,10 +1,21 @@
-import {BigNumberish, cairo, Call, CallData, constants, Contract, num, Provider,AccountInterface,InvokeFunctionResponse} from 'starknet';
+import {
+    AccountInterface,
+    BigNumberish,
+    cairo,
+    Call,
+    CallData,
+    constants,
+    Contract,
+    InvokeFunctionResponse,
+    num,
+    Provider
+} from 'starknet';
 import ERC1155 from "./abi/erc1155-abi.json";
-import {FeeAmount, MAX_SQRT_RATIO, MIN_SQRT_RATIO, SwapDirection,AVNU_SQRT_RATIO} from './constants';
-import {TickMath} from './tickMath';
-import {Config,SimpleSwapParams,AVNUSwapParams,LiquidityParams} from './types';
+import Quoter from "./abi/quoter-abi.json";
+import {AVNU_SQRT_RATIO, FeeAmount, MAX_SQRT_RATIO, MIN_SQRT_RATIO, SwapDirection} from './constants';
+import {AVNUSwapParams, Config, LiquidityParams, SimpleSwapParams} from './types';
 import {Decimal} from 'decimal.js-light';
-
+import {getTickAtSqrtRatio } from './tickMath';
 
 export class Wrap {
 
@@ -14,8 +25,8 @@ export class Wrap {
     public static EkuboPositionAddress: string;
     public static EkuboCoreAddress: string;
 
-
     public static ERC1155Contract: Contract;
+    public static QuoterContract: Contract;
 
     public static SortedTokens:string[];
     public static ERC1155ApproveCall:Call;
@@ -28,6 +39,7 @@ export class Wrap {
         //default provider
         const provider         = config.provider ? config.provider : new Provider({ sequencer: { network: constants.NetworkName.SN_MAIN } });
         Wrap.ERC1155Contract   = new Contract(ERC1155, config.erc1155Address, provider);
+        Wrap.QuoterContract    = new Contract(Quoter, config.quoterAddress, provider);
 
         //addresses
         Wrap.ERC1155Address       = config.erc1155Address;
@@ -142,8 +154,8 @@ export class Wrap {
         Wrap.checkAccount();
         const lowerSqrtRatioX128 = new Decimal(params.lowerPrice).sqrt().mul(new Decimal(2).pow(128)).toFixed(0);
         const upperSqrtRatioX128 = new Decimal(params.upperPrice).sqrt().mul(new Decimal(2).pow(128)).toFixed(0);
-        const lowerTick = TickMath.getTickAtSqrtRatio(BigInt(lowerSqrtRatioX128));
-        const upperTick = TickMath.getTickAtSqrtRatio(BigInt(upperSqrtRatioX128));
+        const lowerTick = getTickAtSqrtRatio(BigInt(lowerSqrtRatioX128));
+        const upperTick = getTickAtSqrtRatio(BigInt(upperSqrtRatioX128));
         if (lowerTick > upperTick) {
             throw new Error("lowerTick should be less than upperTick");
         }
@@ -196,6 +208,41 @@ export class Wrap {
     public withdraw(id: number):Call[]{
         return [];
     }
+
+    public  quoteSingle = async (fee: FeeAmount, specified_token: string, amount: bigint): Promise<number> => {
+
+        try {
+
+            return await Wrap.QuoterContract.quote_single({
+                amount: {
+                    mag: amount,
+                    sign: false
+                },
+                specified_token: specified_token,
+                pool_key: {
+                    token0: Wrap.SortedTokens[0],
+                    token1: Wrap.SortedTokens[1],
+                    fee: Wrap.getFeeX128(fee),
+                    tick_spacing: 200,
+                    extension: 0,
+                },
+            });
+        } catch (error: any) {
+            let inputString = error.toString();
+            const substringToFind = "0x3f532df6e73f94d604f4eb8c661635595c91adc1d387931451eacd418cfbd14";
+            const substringStartIndex = inputString.indexOf(substringToFind);
+
+            if (substringStartIndex !== -1) {
+                const startIndex = substringStartIndex + substringToFind.length + 2; // Skip the substring and the following comma and whitespace
+                const endIndex = inputString.indexOf(",", startIndex);
+                return inputString.substring(startIndex, endIndex).trim();
+            }
+
+            return 0;
+        }
+    }
+
+
 
 
     public swapSimple = async (direction:SwapDirection,params:SimpleSwapParams): Promise<InvokeFunctionResponse> => {
