@@ -1,0 +1,104 @@
+[
+  {
+      "type": "struct",
+      "name": "core::integer::u256",
+      "members": [
+          {
+              "name": "low",
+              "type": "core::integer::u128"
+          },
+          {
+              "name": "high",
+              "type": "core::integer::u128"
+          }
+      ]
+  },
+  {
+      "type": "function",
+      "name": "create_wrap_address",
+      "inputs": [
+          {
+              "name": "erc1155_address",
+              "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+              "name": "token_id",
+              "type": "core::integer::u256"
+          },
+          {
+              "name": "name",
+              "type": "core::felt252"
+          },
+          {
+              "name": "symbol",
+              "type": "core::felt252"
+          }
+      ],
+      "outputs": [],
+      "state_mutability": "external"
+  },
+  {
+      "type": "function",
+      "name": "get_wrap_address",
+      "inputs": [
+          {
+              "name": "erc1155_address",
+              "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+              "name": "token_id",
+              "type": "core::integer::u256"
+          }
+      ],
+      "outputs": [
+          {
+              "type": "core::starknet::contract_address::ContractAddress"
+          }
+      ],
+      "state_mutability": "view"
+  },
+  {
+      "type": "constructor",
+      "name": "constructor",
+      "inputs": [
+          {
+              "name": "wrap_hash_",
+              "type": "core::felt252"
+          }
+      ]
+  },
+  {
+      "type": "event",
+      "name": "instaswap::wrap_factory::WrapFactory::CreateWrapAddress",
+      "kind": "struct",
+      "members": [
+          {
+              "name": "erc1155_address",
+              "type": "core::starknet::contract_address::ContractAddress",
+              "kind": "data"
+          },
+          {
+              "name": "token_id",
+              "type": "core::integer::u256",
+              "kind": "data"
+          },
+          {
+              "name": "wrap_address",
+              "type": "core::starknet::contract_address::ContractAddress",
+              "kind": "data"
+          }
+      ]
+  },
+  {
+      "type": "event",
+      "name": "instaswap::wrap_factory::WrapFactory::Event",
+      "kind": "enum",
+      "variants": [
+          {
+              "name": "CreateWrapAddress",
+              "type": "instaswap::wrap_factory::WrapFactory::CreateWrapAddress",
+              "kind": "nested"
+          }
+      ]
+  }
+]

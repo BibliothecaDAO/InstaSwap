@@ -22,5 +22,9 @@
   },
   "bin": {
     "create-components": "./dist/bin/generateComponents.cjs"
+  },
+  "dependencies": {
+    "decimal.js-light": "^2.5.1",
+    "jsbi": "^4.3.0"
   }
 }
