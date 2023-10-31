@@ -1,0 +1,67 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+
+type PoolKey {
+ key_hash: String!
+ token0: String!
+ token1: String!
+ fee: String!
+ tick_spacing: String!
+ extension: String!
+}
+
+type PositionDeposit{
+    block_number:Int
+    transaction_index:Int
+    event_index:Int
+    transaction_hash: String!
+    token_id:Int
+    lower_bound: String!
+    upper_bound: String!
+    pool_key_hash: String!
+    liquidity: String!
+    delta0: String!
+    delta1: String!
+}
+
+
+type PositionTransfer {
+    block_number:Int
+    transaction_index:Int
+    event_index:Int
+    transaction_hash: String!
+    token_id:Int
+    from_address: String!
+    to_address: String!
+}
+
+
+type Swap{
+    block_number:Int
+    transaction_index:Int
+    event_index:Int
+    transaction_hash: String!
+    locker:String!
+    pool_key_hash: String!
+    delta0: String!
+    delta1: String!
+    sqrt_ratio_after: String!
+    tick_after: String!
+    liquidity_after: String!
+}
+
+
+type Query {
+  pool_keys: [PoolKey!]!
+  pool_key(key_hash: String!): PoolKey!
+  position_transfers:[PositionTransfer!]!
+  position_transfer(transaction_hash: String!):PositionTransfer
+  position_deposits:[PositionDeposit!]!
+  position_deposit(transaction_hash: String!): PositionDeposit
+  swap(transaction_hash: String!):Swap!
+}
+
+
+
