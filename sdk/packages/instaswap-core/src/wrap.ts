@@ -13,14 +13,12 @@ import {
 import ERC1155 from "./abi/erc1155-abi.json";
 import Quoter from "./abi/quoter-abi.json";
 import {
-  AVNU_SQRT_RATIO,
   FeeAmount,
   MAX_SQRT_RATIO,
   MIN_SQRT_RATIO,
   SwapDirection,
 } from "./constants";
 import {
-  AVNUSwapParams,
   Config,
   LiquidityParams,
   SimpleSwapParams,
@@ -124,20 +122,6 @@ export class Wrap {
       entrypoint: "clear",
       calldata: CallData.compile({
         token: token,
-      }),
-    };
-  }
-
-  private static createWERC20ApproveCall(
-    spender: string,
-    amount: BigNumberish,
-  ): Call {
-    return {
-      contractAddress: Wrap.WERC20Address,
-      entrypoint: "approve",
-      calldata: CallData.compile({
-        spender: spender,
-        amount: cairo.uint256(amount),
       }),
     };
   }
@@ -295,56 +279,6 @@ export class Wrap {
     return await this.swapFromERC20ToERC1155(params);
   };
 
-  public swapFromERC1155ToERC20ByAVNU = async (
-    params: AVNUSwapParams,
-  ): Promise<InvokeFunctionResponse> => {
-    if (params.slippage < 0 || params.slippage > 1) {
-      throw new Error("slippage should be between 0 and 1");
-    }
-
-    const werc20AmountIn =
-      BigInt(params.erc1155AmountIn.toString()) * BigInt(10 ** 18);
-
-    /**
-     * swap
-     */
-    const multiRouteSwap: Call = {
-      contractAddress: params.aggregatorAddress,
-      entrypoint: "multi_route_swap",
-      calldata: CallData.compile({
-        token_from_address: Wrap.WERC20Address,
-        token_from_amount: cairo.uint256(werc20AmountIn),
-        token_to_address: Wrap.ERC20Address,
-        token_to_amount: cairo.uint256(params.minERC20AmountOut), // this is useless in avnu contract
-        token_to_min_amount: cairo.uint256(params.minERC20AmountOut),
-        beneficiary: params.userAddress,
-        integrator_fee_amount_bps: 0,
-        integrator_fee_recipient: 0,
-        routes: [
-          {
-            token_from: Wrap.WERC20Address,
-            token_to: Wrap.ERC20Address,
-            exchange_address: Wrap.EkuboCoreAddress,
-            percent: 100,
-            additional_swap_params: [
-              Wrap.SortedTokens[0],
-              Wrap.SortedTokens[1],
-              Wrap.getFeeX128(params.fee), //fee for determin the pool_key
-              200, // tick_spacing for determin the pool_key
-              0, // extension for determin the pool_key
-              AVNU_SQRT_RATIO, //sqrt_ratio_limit
-            ],
-          },
-        ],
-      }),
-    };
-    return Wrap.account.execute([
-      Wrap.ERC1155ApproveCall,
-      Wrap.createDepositCall(Wrap.WERC20Address, params.erc1155AmountIn),
-      Wrap.createWERC20ApproveCall(params.aggregatorAddress, werc20AmountIn),
-      multiRouteSwap,
-    ]);
-  };
 
   public swapFromERC1155ToERC20 = async (
     params: SimpleSwapParams,

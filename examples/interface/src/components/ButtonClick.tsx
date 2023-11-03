@@ -41,10 +41,6 @@ const ButtonClick = () => {
     () => "0x031e8a7ab6a6a556548ac85cbb8b5f56e8905696e9f13e9a858142b8ee0cc221",
     [],
   );
-  const avnu_address = useMemo(
-    () => "0x07e36202ace0ab52bf438bd8a8b64b3731c48d09f0d8879f5b006384c2f35032",
-    [],
-  );
   const simple_swapper = useMemo(
     () => "0x064f7ed2dc5070133ae8ccdf85f01e82507facbe5cdde456e1418e3901dc51a0",
     [],
@@ -128,24 +124,6 @@ const ButtonClick = () => {
   }, [account,nftForWithdraw]);
 
 
-
-  const handleSwapFromERC1155ToERC20ByAVNU = useCallback(async () => {
-    if (!account) return;
-
-    const params = {
-      erc1155AmountIn: erc1155AmountForSwap,
-      minERC20AmountOut: 1313331313,
-      aggregatorAddress: avnu_address,
-      userAddress: account.address,
-      fee: FeeAmount.LOWEST,
-      slippage: 0.99,
-      currentPrice: currentPrice,
-    };
-    const { transaction_hash } =
-      await wrap.swapFromERC1155ToERC20ByAVNU(params);
-    console.log(transaction_hash);
-  }, [account, erc1155AmountForSwap, currentPrice, avnu_address]);
-
   const handleSwapFromERC1155ToERC20BySimpleSwap = useCallback(async () => {
     if (!account) return;
 
@@ -163,7 +141,7 @@ const ButtonClick = () => {
       params,
     );
     console.log(transaction_hash);
-  }, [account, erc1155AmountForSwap, currentPrice, avnu_address]);
+  }, [account, erc1155AmountForSwap, currentPrice]);
 
   const handleSwapFromERC20ToERC1155BySimpleSwap = useCallback(async () => {
     if (!account) return;
@@ -182,7 +160,7 @@ const ButtonClick = () => {
       params,
     );
     console.log(transaction_hash);
-  }, [account, erc20AmountForSwap, currentPrice, avnu_address]);
+  }, [account, erc20AmountForSwap, currentPrice]);
 
   const handleSwapFromWGoldToWSliverBySimpleSwap = useCallback(async () => {
     if (!account) return;
@@ -201,7 +179,7 @@ const ButtonClick = () => {
       params,
     );
     console.log(transaction_hash);
-  }, [account, wGoldForSwap, currentPrice, avnu_address]);
+  }, [account, wGoldForSwap, currentPrice]);
 
   const mayInitializePool = useCallback(async () => {
     const initialize_tick = {
