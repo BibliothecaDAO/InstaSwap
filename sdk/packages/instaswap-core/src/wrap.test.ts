@@ -1,5 +1,3 @@
-
-
 // import {
 //     Account,
 //     Contract,
@@ -22,13 +20,11 @@
 
 // import {Wrap} from './wrap';
 
-
 // const { cleanHex, hexToDecimalString, toBigInt, toHex } = num;
 // const { encodeShortString } = shortString;
 // const { randomAddress } = stark;
 // const { uint256 } = cairo;
 // const { Signature } = ec.starkCurve;
-
 
 // const DEFAULT_TEST_ACCOUNT_ADDRESS =
 //   '0x41a44af91dce40db477e72b1c69ee440333b70acca5d973644ed2f9983d8990';
@@ -44,8 +40,6 @@
 //     let testAccountPrivateKey = DEFAULT_TEST_ACCOUNT_PRIVATE_KEY;
 //     const provider = new Provider({ sequencer: { network: constants.NetworkName.SN_GOERLI } });
 //     const account = new Account(provider, toHex(testAccountAddress), testAccountPrivateKey, '0');
-    
-
 
 //     let wrap = new Wrap(
 //         erc1155_address,
@@ -54,11 +48,10 @@
 //         ekubo_nft_address
 //     );
 
-
 //     test('test add liquidity', async () => {
 //         const { transaction_hash } = await account.execute(wrap.addLiquidity(1));
 //         const receipt = await account.waitForTransaction(transaction_hash);
-        
+
 //     });
 
 //   });

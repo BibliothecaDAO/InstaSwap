@@ -1,1 +1,1 @@
-import { Wrap } from '@bibliothecadao/instaswap-core'
+import { Wrap } from "@bibliothecadao/instaswap-core";
