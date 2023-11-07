@@ -9,19 +9,22 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@bibliothecadao/instaswap-core": "link:instaswap/packages/instaswap-core",
     "@starknet-react/core": "^1.0.1",
+    "get-starknet": "^3.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "@bibliothecadao/instaswap-core": "link:instaswap/packages/instaswap-core"
+    "starknet": "next"
   },
   "devDependencies": {
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
     "@typescript-eslint/eslint-plugin": "^6.7.3",
     "@vitejs/plugin-react": "^3.1.0",
+    "bun-types": "^1.0.8",
     "eslint": "^8.26.0",
     "eslint-plugin-react": "^7.31.4",
-    "typescript": "^4.9.3",
+    "typescript": "^5.2.2",
     "vite": "^4.1.0",
     "vite-plugin-checker": "^0.5.1"
   }
