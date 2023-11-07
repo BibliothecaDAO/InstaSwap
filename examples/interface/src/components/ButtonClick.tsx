@@ -49,6 +49,10 @@ const ButtonClick = () => {
     () => "0x042aa743335663ed9c7b52b331ab7f81cc8d65280d311506653f9b5cc22be7cb",
     [],
   );
+  const nft_address = useMemo(
+    () => "0x1090e3cfd9990c396f246cd1d5c7fb091905cba9f99739653db1f2960a3311f",
+    [],
+  );
   const provider = new Provider({
     sequencer: { network: constants.NetworkName.SN_GOERLI },
   });
