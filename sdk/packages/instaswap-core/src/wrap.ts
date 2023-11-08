@@ -126,20 +126,6 @@ export class Wrap {
     };
   }
 
-  private static createWERC20ApproveCall(
-    spender: string,
-    amount: BigNumberish,
-  ): Call {
-    return {
-      contractAddress: Wrap.WERC20Address,
-      entrypoint: "approve",
-      calldata: CallData.compile({
-        spender: spender,
-        amount: cairo.uint256(amount),
-      }),
-    };
-  }
-
   private static checkAccount() {
     if (!Wrap.account) {
       throw new Error("slippage should be between 0 and 1");
