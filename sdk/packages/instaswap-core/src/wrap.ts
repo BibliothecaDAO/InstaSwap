@@ -221,7 +221,45 @@ export class Wrap {
     ]);
   };
 
-  public withdraw = async (amount:BigNumberish): Promise<InvokeFunctionResponse> =>  {
+  public withdrawLiquidity = async (
+    id: number,
+    liquidity: BigNumberish,
+  ): Promise<InvokeFunctionResponse> => {
+    const withdraw: Call = {
+      contractAddress: Wrap.EkuboPositionAddress,
+      entrypoint: "withdraw",
+      calldata: CallData.compile({
+        id: id,
+        pool_key: {
+          token0: Wrap.SortedTokens[0],
+          token1: Wrap.SortedTokens[1],
+          fee: Wrap.getFeeX128(FeeAmount.LOWEST),
+          tick_spacing: 200,
+          extension: 0,
+        },
+        bounds: {
+          lower: {
+            mag: 50000000n,
+            sign: 1,
+          },
+          upper: {
+            mag: 50000000n,
+            sign: 0,
+          },
+        },
+        liquidity: liquidity,
+        min_token0: 0,
+        min_token1: 0,
+        collect_fees: 1,
+      }),
+    };
+
+    return Wrap.account.execute([withdraw]);
+  };
+
+  public withdraw = async (
+    amount: BigNumberish,
+  ): Promise<InvokeFunctionResponse> => {
     return Wrap.account.execute([
       {
         contractAddress: Wrap.WERC20Address,
@@ -229,9 +267,9 @@ export class Wrap {
         calldata: CallData.compile({
           amount: cairo.uint256(amount),
         }),
-      }
+      },
     ]);
-  }
+  };
 
   public quoteSingle = async (
     fee: FeeAmount,

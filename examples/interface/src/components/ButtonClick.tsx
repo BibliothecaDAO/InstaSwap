@@ -18,6 +18,8 @@ const ButtonClick = () => {
   const [erc20AmountForSwap, setERC20AmountForSwap] = useState(0);
   const [wGoldForSwap, setWGoldForSwap] = useState(0);
   const [nftForWithdraw, setNftForWithdraw] = useState(0);
+  const [positionId, setPositionId] = useState(0);
+  const [liquidity, setLiquidity] = useState(0);
 
   const erc1155_address = useMemo(
     () => "0x03467674358c444d5868e40b4de2c8b08f0146cbdb4f77242bd7619efcf3c0a6",
@@ -41,6 +43,7 @@ const ButtonClick = () => {
     () => "0x031e8a7ab6a6a556548ac85cbb8b5f56e8905696e9f13e9a858142b8ee0cc221",
     [],
   );
+
   const simple_swapper = useMemo(
     () => "0x064f7ed2dc5070133ae8ccdf85f01e82507facbe5cdde456e1418e3901dc51a0",
     [],
@@ -120,12 +123,10 @@ const ButtonClick = () => {
   }, [account, lowerBound, upperBound, ethAmount, erc1155Amount]);
 
 
-
   const withdraw = useCallback(async () => {
     const { transaction_hash } = await wrap.withdraw(nftForWithdraw);
     console.log(transaction_hash);
-
-  }, [account,nftForWithdraw]);
+  }, [account, nftForWithdraw]);
 
 
   const handleSwapFromERC1155ToERC20BySimpleSwap = useCallback(async () => {
@@ -166,24 +167,15 @@ const ButtonClick = () => {
     console.log(transaction_hash);
   }, [account, erc20AmountForSwap, currentPrice]);
 
-  const handleSwapFromWGoldToWSliverBySimpleSwap = useCallback(async () => {
+  const withdrawLiquidity = useCallback(async () => {
     if (!account) return;
-    // debugger;
-    const params = {
-      amountIn: 0.001 * 10 ** 18,
-      minERC20AmountOut: 1313331313,
-      simpleSwapperAddress: simple_swapper,
-      userAddress: account.address,
-      fee: FeeAmount.LOWEST,
-      slippage: 0.99,
-    };
 
-    const { transaction_hash } = await wrap.swapSimple(
-      SwapDirection.ERC20_TO_ERC1155,
-      params,
+    const { transaction_hash } = await wrap.withdrawLiquidity(
+      positionId,
+      liquidity,
     );
     console.log(transaction_hash);
-  }, [account, wGoldForSwap, currentPrice]);
+  }, [account, liquidity]);
 
   const mayInitializePool = useCallback(async () => {
     const initialize_tick = {
@@ -197,10 +189,6 @@ const ButtonClick = () => {
     );
     console.log(transaction_hash);
   }, [account, lowerBound, upperBound]);
-
-
-
-
 
   const mintERC1155Token = useCallback(async () => {
     if (!address) return;
@@ -242,6 +230,7 @@ const ButtonClick = () => {
       <div>
         <button onClick={mintERC1155Token}>mint ERC1155 token</button>
       </div>
+
       <div>
         <h3> Add Liquidity </h3>
       </div>
@@ -285,6 +274,31 @@ const ButtonClick = () => {
       </div>
       <div>
         <button onClick={handleAddLiquidity}>add liquidity</button>
+      </div>
+
+      <div>
+        <h3> Withdraw Liquidity </h3>
+      </div>
+      <div>
+        <label htmlFor="erc20 amount">id:</label>
+        <input
+          type="number"
+          id="position id"
+          value={positionId}
+          onChange={(e) => setPositionId(parseFloat(e.target.value))}
+        />
+      </div>
+      <div>
+        <label htmlFor="erc20 amount">liquidity:</label>
+        <input
+          type="number"
+          id="liquidity"
+          value={liquidity}
+          onChange={(e) => setLiquidity(parseFloat(e.target.value))}
+        />
+      </div>
+      <div>
+        <button onClick={withdrawLiquidity}>withdraw</button>
       </div>
 
       {/*<div>*/}
