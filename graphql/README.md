@@ -1,5 +1,9 @@
 # indexer-graphql
 
+This is a GraphQL API for querying indexed Ekubo events.
+
+Please follow the Ekubo indexer instructions to build the events database. https://github.com/EkuboProtocol/indexer
+
 ## How to start
 
 ### step 1
