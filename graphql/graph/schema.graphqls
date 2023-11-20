@@ -58,6 +58,7 @@ type Query {
   pool_key(key_hash: String!): PoolKey!
   position_transfers:[PositionTransfer!]!
   position_transfer(transaction_hash: String!):PositionTransfer
+  list_liquidity(account: String!):[PositionTransfer!]!
   position_deposits:[PositionDeposit!]!
   position_deposit(transaction_hash: String!): PositionDeposit
   swap(transaction_hash: String!):Swap!

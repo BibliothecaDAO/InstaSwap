@@ -12,7 +12,7 @@ type PoolKey struct {
 }
 
 type PositionDeposit struct {
-	tableName 		 struct{} `pg:"position_deposit"`
+	tableName    struct{} `pg:"position_deposit"`
 	BlockNumber      *int   `json:"block_number,omitempty"`
 	TransactionIndex *int   `json:"transaction_index,omitempty"`
 	EventIndex       *int   `json:"event_index,omitempty"`

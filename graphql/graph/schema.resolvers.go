@@ -7,6 +7,7 @@ package graph
 import (
 	"context"
 	"github.com/metaforo/indexer-graphql/graph/model"
+	"github.com/metaforo/indexer-graphql/graph/utils"
 )
 
 // PoolKeys is the resolver for the pool_keys field.
@@ -24,7 +25,7 @@ func (r *queryResolver) PoolKeys(ctx context.Context) ([]*model.PoolKey, error) 
 func (r *queryResolver) PoolKey(ctx context.Context, keyHash string) (*model.PoolKey, error) {
 	pool_key := &model.PoolKey{}
 
-	err := r.DB.Model(pool_key).Where("key_hash=?", keyHash).Select()
+	err := r.DB.Model(pool_key).Where("key_hash=?", utils.Hex2BigNum(keyHash)).Select()
 	if err != nil {
 		return nil, err
 	}
@@ -46,11 +47,22 @@ func (r *queryResolver) PositionTransfers(ctx context.Context) ([]*model.Positio
 func (r *queryResolver) PositionTransfer(ctx context.Context, transactionHash string) (*model.PositionTransfer, error) {
 	position_transfer := &model.PositionTransfer{}
 
-	err := r.DB.Model(position_transfer).Where("transaction_hash=?", transactionHash).Select()
+	err := r.DB.Model(position_transfer).Where("transaction_hash=?",  utils.Hex2BigNum(transactionHash)).Select()
 	if err != nil {
 		return nil, err
 	}
 	return position_transfer, nil
+}
+
+// ListLiquidity is the resolver for the list_liquidity field.
+func (r *queryResolver) ListLiquidity(ctx context.Context, account string) ([]*model.PositionTransfer, error) {
+	var position_transfers []*model.PositionTransfer
+
+	err := r.DB.Model(&position_transfers).Where("to_address=?",utils.Hex2BigNum(account)).Select()
+	if err != nil {
+		return nil, err
+	}
+	return position_transfers, nil
 }
 
 // PositionDeposits is the resolver for the position_deposits field.
@@ -68,7 +80,7 @@ func (r *queryResolver) PositionDeposits(ctx context.Context) ([]*model.Position
 func (r *queryResolver) PositionDeposit(ctx context.Context, transactionHash string) (*model.PositionDeposit, error) {
 	position_deposit := &model.PositionDeposit{}
 
-	err := r.DB.Model(position_deposit).Where("transaction_hash=?", transactionHash).Select()
+	err := r.DB.Model(position_deposit).Where("transaction_hash=?",  utils.Hex2BigNum(transactionHash)).Select()
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +91,7 @@ func (r *queryResolver) PositionDeposit(ctx context.Context, transactionHash str
 func (r *queryResolver) Swap(ctx context.Context, transactionHash string) (*model.Swap, error) {
 	swap := &model.Swap{}
 
-	err := r.DB.Model(swap).Where("transaction_hash=?", transactionHash).Select()
+	err := r.DB.Model(swap).Where("transaction_hash=?",  utils.Hex2BigNum(transactionHash)).Select()
 	if err != nil {
 		return nil, err
 	}
