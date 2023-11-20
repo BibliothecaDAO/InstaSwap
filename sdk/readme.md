@@ -9,11 +9,13 @@ It is a Vanilla JS implementation.
 Install bun.sh
 
 Install dependencies:
+
 ```
 bun install
 ```
 
 Build watch:
+
 ```
 bun run build --watch
 ```

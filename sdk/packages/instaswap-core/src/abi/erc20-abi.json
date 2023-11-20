@@ -1,0 +1,419 @@
+[
+  {
+    "name": "finalized",
+    "type": "function",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "res",
+        "type": "felt"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "data": [
+      {
+        "name": "new_governor_nominee",
+        "type": "felt"
+      },
+      {
+        "name": "nominated_by",
+        "type": "felt"
+      }
+    ],
+    "keys": [],
+    "name": "governor_nominated",
+    "type": "event"
+  },
+  {
+    "data": [
+      {
+        "name": "cancelled_nominee",
+        "type": "felt"
+      },
+      {
+        "name": "cancelled_by",
+        "type": "felt"
+      }
+    ],
+    "keys": [],
+    "name": "nomination_cancelled",
+    "type": "event"
+  },
+  {
+    "data": [
+      {
+        "name": "removed_governor",
+        "type": "felt"
+      },
+      {
+        "name": "removed_by",
+        "type": "felt"
+      }
+    ],
+    "keys": [],
+    "name": "governor_removed",
+    "type": "event"
+  },
+  {
+    "data": [
+      {
+        "name": "new_governor",
+        "type": "felt"
+      }
+    ],
+    "keys": [],
+    "name": "governance_accepted",
+    "type": "event"
+  },
+  {
+    "name": "is_governor",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "felt"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "is_governor_",
+        "type": "felt"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "name": "init_governance",
+    "type": "function",
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "name": "nominate_new_governor",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "nominee",
+        "type": "felt"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "cancel_nomination",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "cancelee",
+        "type": "felt"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "remove_governor",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "removee",
+        "type": "felt"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "accept_governance",
+    "type": "function",
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "data": [
+      {
+        "name": "implementation",
+        "type": "felt"
+      },
+      {
+        "name": "eic_address",
+        "type": "felt"
+      },
+      {
+        "name": "init_vector_len",
+        "type": "felt"
+      },
+      {
+        "name": "init_vector",
+        "type": "felt*"
+      },
+      {
+        "name": "final",
+        "type": "felt"
+      }
+    ],
+    "keys": [],
+    "name": "implementation_added",
+    "type": "event"
+  },
+  {
+    "data": [
+      {
+        "name": "implementation",
+        "type": "felt"
+      },
+      {
+        "name": "eic_address",
+        "type": "felt"
+      },
+      {
+        "name": "init_vector_len",
+        "type": "felt"
+      },
+      {
+        "name": "init_vector",
+        "type": "felt*"
+      },
+      {
+        "name": "final",
+        "type": "felt"
+      }
+    ],
+    "keys": [],
+    "name": "implementation_removed",
+    "type": "event"
+  },
+  {
+    "data": [
+      {
+        "name": "implementation",
+        "type": "felt"
+      },
+      {
+        "name": "eic_address",
+        "type": "felt"
+      },
+      {
+        "name": "init_vector_len",
+        "type": "felt"
+      },
+      {
+        "name": "init_vector",
+        "type": "felt*"
+      }
+    ],
+    "keys": [],
+    "name": "implementation_upgraded",
+    "type": "event"
+  },
+  {
+    "data": [
+      {
+        "name": "implementation",
+        "type": "felt"
+      }
+    ],
+    "keys": [],
+    "name": "implementation_finalized",
+    "type": "event"
+  },
+  {
+    "name": "implementation",
+    "type": "function",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "address",
+        "type": "felt"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "name": "implementation_time",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "implementation_",
+        "type": "felt"
+      },
+      {
+        "name": "eic_address",
+        "type": "felt"
+      },
+      {
+        "name": "init_vector_len",
+        "type": "felt"
+      },
+      {
+        "name": "init_vector",
+        "type": "felt*"
+      },
+      {
+        "name": "final",
+        "type": "felt"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "time",
+        "type": "felt"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "name": "add_implementation",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "implementation_",
+        "type": "felt"
+      },
+      {
+        "name": "eic_address",
+        "type": "felt"
+      },
+      {
+        "name": "init_vector_len",
+        "type": "felt"
+      },
+      {
+        "name": "init_vector",
+        "type": "felt*"
+      },
+      {
+        "name": "final",
+        "type": "felt"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "remove_implementation",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "implementation_",
+        "type": "felt"
+      },
+      {
+        "name": "eic_address",
+        "type": "felt"
+      },
+      {
+        "name": "init_vector_len",
+        "type": "felt"
+      },
+      {
+        "name": "init_vector",
+        "type": "felt*"
+      },
+      {
+        "name": "final",
+        "type": "felt"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "upgrade_to",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "implementation_",
+        "type": "felt"
+      },
+      {
+        "name": "eic_address",
+        "type": "felt"
+      },
+      {
+        "name": "init_vector_len",
+        "type": "felt"
+      },
+      {
+        "name": "init_vector",
+        "type": "felt*"
+      },
+      {
+        "name": "final",
+        "type": "felt"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "initialize",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "init_vector_len",
+        "type": "felt"
+      },
+      {
+        "name": "init_vector",
+        "type": "felt*"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "constructor",
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "upgrade_delay_seconds",
+        "type": "felt"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "__default__",
+    "type": "function",
+    "inputs": [
+      {
+        "name": "selector",
+        "type": "felt"
+      },
+      {
+        "name": "calldata_size",
+        "type": "felt"
+      },
+      {
+        "name": "calldata",
+        "type": "felt*"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "retdata_size",
+        "type": "felt"
+      },
+      {
+        "name": "retdata",
+        "type": "felt*"
+      }
+    ]
+  },
+  {
+    "name": "__l1_default__",
+    "type": "l1_handler",
+    "inputs": [
+      {
+        "name": "selector",
+        "type": "felt"
+      },
+      {
+        "name": "calldata_size",
+        "type": "felt"
+      },
+      {
+        "name": "calldata",
+        "type": "felt*"
+      }
+    ],
+    "outputs": []
+  }
+]

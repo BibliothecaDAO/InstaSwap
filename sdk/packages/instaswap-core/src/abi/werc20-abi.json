@@ -190,7 +190,7 @@
         "inputs": [
           {
             "name": "spender",
-            "type": "core::starknet::contract_address::ontractAddress"
+            "type": "core::starknet::contract_address::ContractAddress"
           },
           {
             "name": "amount",

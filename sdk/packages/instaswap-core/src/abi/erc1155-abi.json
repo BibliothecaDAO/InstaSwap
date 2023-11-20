@@ -175,7 +175,7 @@
         "type": "function",
         "inputs": [
           {
-           "name": "from",
+            "name": "from",
             "type": "core::starknet::contract_address::ContractAddress"
           },
           {
@@ -584,4 +584,4 @@
       }
     ]
   }
-] 
+]
