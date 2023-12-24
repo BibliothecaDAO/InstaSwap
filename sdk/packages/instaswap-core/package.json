@@ -1,6 +1,6 @@
 {
-  "name": "@bibliothecadao/instaswap-core",
-  "version": "0.0.1",
+  "name": "instaswap-core",
+  "version": "0.0.2",
   "description": "Instaswap core",
   "scripts": {
     "build": "tsc",

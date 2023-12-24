@@ -9,9 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@bibliothecadao/instaswap-core": "link:instaswap/packages/instaswap-core",
     "@starknet-react/core": "^1.0.1",
     "get-starknet": "^3.0.1",
+    "instaswap-core": "^0.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "starknet": "next"

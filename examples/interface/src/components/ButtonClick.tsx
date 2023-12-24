@@ -1,8 +1,8 @@
 import { useAccount, useConnectors } from "@starknet-react/core";
 import { useCallback, useMemo, useState, useEffect } from "react";
 import { Contract, uint256, CallData, RawArgs, Call, num } from "starknet";
-import { Wrap } from "@bibliothecadao/instaswap-core";
-import { FeeAmount, SwapDirection } from "@bibliothecadao/instaswap-core";
+import { Wrap } from "instaswap-core";
+import { FeeAmount, SwapDirection } from "instaswap-core";
 import { Provider, constants, cairo } from "starknet";
 
 const ButtonClick = () => {
