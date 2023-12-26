@@ -1,7 +1,5 @@
 {
   "name": "instaswap",
   "version": "0.1.0",
-  "workspaces": [
-    "packages/instaswap-core"
-  ]
+  "workspaces": ["packages/*"]
 }
