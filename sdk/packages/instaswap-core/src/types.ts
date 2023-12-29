@@ -1,4 +1,4 @@
-import { AccountInterface, BigNumberish, Provider } from "starknet";
+import { AccountInterface, BigNumberish, RpcProvider } from "starknet";
 import { FeeAmount } from "./constants";
 
 export type Config = {
@@ -9,7 +9,7 @@ export type Config = {
   ekuboCoreAddress: string;
   quoterAddress: string;
   account: AccountInterface | undefined;
-  provider?: Provider;
+  provider?: RpcProvider;
 };
 
 export type LiquidityParams = {

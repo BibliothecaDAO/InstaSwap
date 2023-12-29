@@ -1,6 +1,6 @@
 import { useAccount, useConnectors } from "@starknet-react/core";
 import { useCallback, useMemo, useState, useEffect } from "react";
-import { Contract, uint256, CallData, RawArgs, Call, num } from "starknet";
+import { Contract, uint256, CallData, RawArgs, Call, num, RpcProvider } from "starknet";
 import { Wrap } from "instaswap-core";
 import { FeeAmount, SwapDirection } from "instaswap-core";
 import { Provider, constants, cairo } from "starknet";
@@ -56,9 +56,8 @@ const ButtonClick = () => {
     () => "0x1090e3cfd9990c396f246cd1d5c7fb091905cba9f99739653db1f2960a3311f",
     [],
   );
-  const provider = new Provider({
-    sequencer: { network: constants.NetworkName.SN_GOERLI },
-  });
+  const infuraKey = "54aff2ddb77a4d01a5b0e61deb37e8d6";
+  const provider = new RpcProvider({ nodeUrl: 'https://starknet-goerli.infura.io/v3/' + infuraKey });
 
   const config = {
     erc1155Address: erc1155_address,
