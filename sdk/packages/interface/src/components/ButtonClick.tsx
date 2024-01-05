@@ -4,6 +4,7 @@ import { Contract, uint256, CallData, RawArgs, Call, num, RpcProvider } from "st
 import { Wrap } from "instaswap-core";
 import { FeeAmount, SwapDirection } from "instaswap-core";
 import { Provider, constants, cairo } from "starknet";
+import LiquidityList from './Query';
 
 const ButtonClick = () => {
   const [lowerBound, setLowerBound] = useState(0);
@@ -357,6 +358,7 @@ const ButtonClick = () => {
       <div>
         <button onClick={withdraw}>withdraw</button>
       </div>
+      <LiquidityList account="0x0718a7b914428a0539d2bbfc6a274597f279570817b4437cdf6994a5be0b17f7" />
     </div>
   );
 };
