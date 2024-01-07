@@ -12,6 +12,7 @@ import {
 } from "starknet";
 import ERC1155 from "./abi/erc1155-abi.json";
 import Quoter from "./abi/quoter-abi.json";
+import EkuboNFT from "./abi/ekubonft-abi.json";
 import {
   FeeAmount,
   MAX_SQRT_RATIO,
@@ -32,9 +33,11 @@ export class Wrap {
   public static ERC20Address: string;
   public static EkuboPositionAddress: string;
   public static EkuboCoreAddress: string;
+  public static EKuboNFTAddress: string;
 
   public static ERC1155Contract: Contract;
   public static QuoterContract: Contract;
+  public static EkuboNFTContract: Contract;
 
   public static SortedTokens: string[];
   public static ERC1155ApproveCall: Call;
@@ -52,6 +55,11 @@ export class Wrap {
       config.erc1155Address,
       provider,
     );
+    Wrap.EkuboNFTContract = new Contract(
+      EkuboNFT,
+      config.ekuboNFTAddress,
+      provider,
+    )
     Wrap.QuoterContract = new Contract(Quoter, config.quoterAddress, provider);
 
     //addresses
@@ -60,6 +68,7 @@ export class Wrap {
     Wrap.ERC20Address = config.erc20Address;
     Wrap.EkuboPositionAddress = config.ekuboPositionAddress;
     Wrap.EkuboCoreAddress = config.ekuboCoreAddress;
+    Wrap.EKuboNFTAddress = config.ekuboNFTAddress;
 
     Wrap.SortedTokens = [Wrap.ERC20Address, Wrap.WERC20Address].sort((a, b) =>
       a.localeCompare(b),
@@ -431,4 +440,11 @@ export class Wrap {
     const tokenIdCairo = cairo.uint256(tokenId);
     return await Wrap.ERC1155Contract.balance_of(address, tokenIdCairo);
   };
+
+  public static getNFTTokenUri = async (
+    tokenId: BigNumberish,
+  ): Promise<string> => {
+    const tokenIdCairo = cairo.uint256(tokenId);
+    return await Wrap.EkuboNFTContract.token_uri(tokenIdCairo);
+  }
 }

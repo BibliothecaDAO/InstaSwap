@@ -53,12 +53,11 @@ const ButtonClick = () => {
     () => "0x042aa743335663ed9c7b52b331ab7f81cc8d65280d311506653f9b5cc22be7cb",
     [],
   );
-  const nft_address = useMemo(
+  const ekubo_nft_address = useMemo(
     () => "0x1090e3cfd9990c396f246cd1d5c7fb091905cba9f99739653db1f2960a3311f",
     [],
   );
-  const infuraKey = "54aff2ddb77a4d01a5b0e61deb37e8d6";
-  const provider = new RpcProvider({ nodeUrl: 'https://starknet-goerli.infura.io/v3/' + infuraKey });
+  const provider = new RpcProvider({ nodeUrl: 'https://starknet-testnet.public.blastapi.io/' });
 
   const config = {
     erc1155Address: erc1155_address,
@@ -69,6 +68,7 @@ const ButtonClick = () => {
     quoterAddress: quoter,
     provider: provider,
     account: account,
+    ekuboNFTAddress: ekubo_nft_address,
   };
 
   const wrap = new Wrap(config);
@@ -358,7 +358,7 @@ const ButtonClick = () => {
       <div>
         <button onClick={withdraw}>withdraw</button>
       </div>
-      <LiquidityList account="0x0718a7b914428a0539d2bbfc6a274597f279570817b4437cdf6994a5be0b17f7" />
+      <LiquidityList account={account?.address} wrap={wrap} />
     </div>
   );
 };

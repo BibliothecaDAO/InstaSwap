@@ -8,6 +8,7 @@ export type Config = {
   ekuboPositionAddress: string;
   ekuboCoreAddress: string;
   quoterAddress: string;
+  ekuboNFTAddress: string;
   account: AccountInterface | undefined;
   provider?: RpcProvider;
 };
