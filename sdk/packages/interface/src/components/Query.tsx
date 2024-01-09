@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import { Wrap } from "instaswap-core";
+import { Provider, constants, cairo, shortString, num } from "starknet";
+
 
 // Define the TypeScript types for the GraphQL response
 type ListLiquidityResponse = {
@@ -40,13 +42,32 @@ const LiquidityList: React.FC<LiquidityListProps> = ({ account }) => {
   // State to store additional token data
   const [tokenDetails, setTokenDetails] = useState<{ [key: number]: TokenDetails }>({});
 
+  // State to store the fetched JSON data
+  const [tokenInfo, setTokenInfo] = useState<{ [key: number]: any }>({});
+
+
   useEffect(() => {
     if (data) {
       (async () => {
         try {
           for (const liquidity of data.list_liquidity) {
-            const ret = await Wrap.getNFTTokenUri(liquidity.token_id);
-            console.log(ret.toString());
+            const res = await Wrap.getNFTTokenUri(liquidity.token_id);
+            const longString = res.map((shortStr: bigint) => {
+              return shortString.decodeShortString(num.toHex(shortStr));
+            }).join("");
+
+            // Fetch the JSON from the URL
+            const response = await fetch(longString);
+            const jsonData = await response.json();
+
+            // Update the tokenInfo state with the fetched data
+            setTokenInfo((prevTokenInfo) => ({
+              ...prevTokenInfo,
+              [liquidity.token_id]: jsonData
+            }));
+
+            // You can also update your tokenDetails state here if you need to
+            // setTokenDetails(...)
           }
         } catch (error) {
           console.error('Error fetching token details:', error);
@@ -54,7 +75,6 @@ const LiquidityList: React.FC<LiquidityListProps> = ({ account }) => {
       })();
     }
   }, [data]);
-
   if (loading) return <p>Loading...</p>;
   if (error) return <p>An error occurred: {error.message}</p>;
 
@@ -63,10 +83,15 @@ const LiquidityList: React.FC<LiquidityListProps> = ({ account }) => {
       {data && data.list_liquidity.map((liquidity, index) => (
         <li key={index}>
           Token ID: {liquidity.token_id}
-          {tokenDetails[liquidity.token_id] && (
+          {tokenInfo[liquidity.token_id] && (
             <div>
-              <p>Name: {tokenDetails[liquidity.token_id].name}</p>
-              {/* Add more details here as required */}
+              <p>Name: {tokenInfo[liquidity.token_id].name}</p>
+              <p>Description: {tokenInfo[liquidity.token_id].description}</p>
+              <img src={tokenInfo[liquidity.token_id].image} alt="Token" />
+              {/* Map over the attributes array */}
+              {tokenInfo[liquidity.token_id].attributes.map((attribute, attrIndex) => (
+                <p key={attrIndex}>{attribute.trait_type}: {attribute.value}</p>
+              ))}
             </div>
           )}
         </li>

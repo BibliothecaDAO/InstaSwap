@@ -443,7 +443,7 @@ export class Wrap {
 
   public static getNFTTokenUri = async (
     tokenId: BigNumberish,
-  ): Promise<string> => {
+  ): Promise<bigint[]> => {
     const tokenIdCairo = cairo.uint256(tokenId);
     return await Wrap.EkuboNFTContract.token_uri(tokenIdCairo);
   }
